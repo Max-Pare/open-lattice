@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.openlattice.app.data.SavedPrinter
+import dev.openlattice.app.monitor.PrintMonitorService
 import dev.openlattice.app.data.UriUploadSource
 import dev.openlattice.app.ui.PendingShare
 import dev.openlattice.app.ui.app
@@ -86,6 +87,9 @@ class PrinterViewModel(application: Application, private val printerId: String) 
             val p = app.store.get(printerId) ?: return@launch
             printer.value = p
             driverFlow.value = app.connections.acquire(p)
+            launch {
+                state.collect { if (it.machine.isJobActive) PrintMonitorService.start(getApplication()) }
+            }
             // A file shared into the app while choosing this printer.
             PendingShare.uri.value?.let { uri ->
                 PendingShare.uri.value = null

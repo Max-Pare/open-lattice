@@ -1,6 +1,9 @@
 package dev.openlattice.app.ui
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.compose.runtime.LaunchedEffect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -29,9 +32,21 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleIntent(intent)
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+        }
         setContent {
             OpenLatticeTheme {
                 val nav = rememberNavController()
+                // Opened from a monitor notification: jump to that printer.
+                LaunchedEffect(Unit) {
+                    openPrinter.collect { id ->
+                        if (id != null) {
+                            openPrinter.value = null
+                            nav.navigate("printer/$id") { popUpTo("printers") }
+                        }
+                    }
+                }
                 NavHost(nav, startDestination = "printers") {
                     composable("printers") {
                         PrinterListScreen(
@@ -66,7 +81,10 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
     }
 
+    private val openPrinter = MutableStateFlow<String?>(null)
+
     private fun handleIntent(intent: Intent?) {
+        intent?.getStringExtra(EXTRA_PRINTER_ID)?.let { openPrinter.value = it }
         val uri = when (intent?.action) {
             Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
@@ -77,5 +95,9 @@ class MainActivity : ComponentActivity() {
             else -> null
         }
         if (uri != null) PendingShare.uri.value = uri
+    }
+
+    companion object {
+        const val EXTRA_PRINTER_ID = "printer_id"
     }
 }

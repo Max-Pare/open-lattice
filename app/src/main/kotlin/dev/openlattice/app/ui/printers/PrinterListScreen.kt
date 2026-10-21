@@ -27,6 +27,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import dev.openlattice.app.monitor.PrintMonitorService
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -96,6 +98,7 @@ private fun PrinterCard(printer: SavedPrinter, onClick: () -> Unit) {
     val driver = remember(printer) { connections.acquire(printer) }
     DisposableEffect(printer) { onDispose { connections.release(printer.id) } }
     val state by driver.state.collectAsState()
+    LaunchedEffect(state.machine.isJobActive) { if (state.machine.isJobActive) PrintMonitorService.start(context) }
 
     Card(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
