@@ -20,6 +20,7 @@ import dev.openlattice.core.PrinterFile
 import dev.openlattice.core.PrinterInfo
 import dev.openlattice.core.PrinterState
 import dev.openlattice.core.Storage
+import dev.openlattice.core.StorageInfo
 import dev.openlattice.core.UploadProgress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,6 +44,7 @@ data class FilesUi(
     val files: List<PrinterFile> = emptyList(),
     val loading: Boolean = false,
     val error: String? = null,
+    val space: StorageInfo? = null,
 )
 
 data class HistoryUi(val entries: List<HistoryEntry> = emptyList(), val loading: Boolean = false, val error: String? = null)
@@ -117,7 +119,10 @@ class PrinterViewModel(application: Application, private val printerId: String) 
         _files.value = _files.value.copy(storage = storage, loading = true, error = null)
         viewModelScope.launch {
             _files.value = try {
-                FilesUi(storage, driver().listFiles(storage).sortedByDescending { it.createdAtEpochSec ?: 0 })
+                val d = driver()
+                val files = d.listFiles(storage).sortedByDescending { it.createdAtEpochSec ?: 0 }
+                val space = if (storage == Storage.LOCAL) runCatching { d.storageInfo() }.getOrNull() else null
+                FilesUi(storage, files, space = space)
             } catch (e: Exception) {
                 FilesUi(storage, emptyList(), error = e.message ?: "Could not list files")
             }

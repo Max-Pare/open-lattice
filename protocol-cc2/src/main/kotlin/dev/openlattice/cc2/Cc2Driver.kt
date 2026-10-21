@@ -1,5 +1,6 @@
 package dev.openlattice.cc2
 
+import dev.openlattice.core.BuildPlate
 import dev.openlattice.core.Capability
 import dev.openlattice.core.ConnectionState
 import dev.openlattice.core.Fan
@@ -14,6 +15,7 @@ import dev.openlattice.core.PrinterFile
 import dev.openlattice.core.PrinterInfo
 import dev.openlattice.core.PrinterState
 import dev.openlattice.core.Storage
+import dev.openlattice.core.StorageInfo
 import dev.openlattice.core.Timelapse
 import dev.openlattice.core.UploadProgress
 import dev.openlattice.core.UploadSource
@@ -77,7 +79,7 @@ class Cc2Driver(
 
     override val capabilities: Set<Capability> = setOf(
         Capability.CAMERA, Capability.CANVAS, Capability.USB_STORAGE, Capability.TIMELAPSE,
-        Capability.CHAMBER_FAN, Capability.AUX_FAN, Capability.AI_DETECTION,
+        Capability.CHAMBER_FAN, Capability.AUX_FAN,
     )
 
     private val baseUrl = if (httpPort == 80) "http://$host" else "http://$host:$httpPort"
@@ -143,6 +145,8 @@ class Cc2Driver(
         }
     }
 
+    // Called from the status collector, the connection-lost callback and command paths concurrently.
+    @Synchronized
     private fun publishState() {
         val raw = client?.status?.value
         val conn = connection.value
@@ -218,6 +222,25 @@ class Cc2Driver(
             is PrinterCommand.Rename -> c.request(Cc2Method.SET_NAME, buildJsonObject { put("hostname", command.name) })
             PrinterCommand.LoadFilament -> c.request(Cc2Method.FEED, timeoutMs = FILAMENT_TIMEOUT_MS)
             PrinterCommand.UnloadFilament -> c.request(Cc2Method.RETRACT, timeoutMs = FILAMENT_TIMEOUT_MS)
+            is PrinterCommand.LoadTray -> c.request(Cc2Method.CANVAS_LOAD, tray(command.hubId, command.trayId), FILAMENT_TIMEOUT_MS)
+            is PrinterCommand.UnloadTray -> c.request(Cc2Method.CANVAS_UNLOAD, tray(command.hubId, command.trayId), FILAMENT_TIMEOUT_MS)
+            is PrinterCommand.SetFilament -> {
+                // Shape from elegoo-cc2-webui; the external spool takes the same fields with canvas 0 / tray 0.
+                val m = command.material
+                val params = buildJsonObject {
+                    put("brand", "Generic")
+                    put("filament_type", m.label)
+                    put("filament_name", m.label)
+                    put("filament_code", m.code)
+                    put("filament_color", command.color.uppercase())
+                    put("filament_min_temp", m.minTemp)
+                    put("filament_max_temp", m.maxTemp)
+                    put("canvas_id", command.hubId.coerceAtLeast(0))
+                    put("tray_id", if (command.hubId < 0) 0 else command.trayId)
+                }
+                c.request(if (command.hubId < 0) Cc2Method.SET_MONO_FILAMENT else Cc2Method.CANVAS_SET_FILAMENT, params)
+                refreshFilament()
+            }
             is PrinterCommand.SetAutoRefill -> {
                 c.request(Cc2Method.SET_AUTO_REFILL, buildJsonObject { put("auto_refill", command.enabled) })
                 refreshFilament()
@@ -230,14 +253,16 @@ class Cc2Driver(
     }
 
     private suspend fun startPrint(c: Cc2Client, cmd: PrinterCommand.StartPrint) {
+        // Field meanings from elegoo-link (StartPrintParams in include/types/printer.h).
         fun params(forceLeveling: Boolean) = buildJsonObject {
             put("filename", cmd.fileName)
             put("storage_media", cmd.storage.wire)
             putJsonObject("config") {
                 put("bedlevel_force", forceLeveling)
                 put("delay_video", cmd.timelapse)
-                put("print_layout", "A")
-                put("printer_check", false)
+                // A = textured high-temperature plate, B = smooth low-temperature plate.
+                put("print_layout", if (cmd.plate == BuildPlate.SMOOTH) "B" else "A")
+                put("printer_check", cmd.autoBedLeveling)
                 putJsonArray("slot_map") {
                     for (m in cmd.slotMap) add(buildJsonObject {
                         put("t", m.tool)
@@ -248,11 +273,11 @@ class Cc2Driver(
             }
         }
         try {
-            c.request(Cc2Method.START_PRINT, params(cmd.bedLeveling), LONG_TIMEOUT_MS)
+            c.request(Cc2Method.START_PRINT, params(forceLeveling = false), LONG_TIMEOUT_MS)
         } catch (e: PrinterCommandException) {
-            // 1026: no bed mesh saved yet; the printer needs a leveling pass first.
-            if (e.code != 1026 || cmd.bedLeveling) throw e
-            c.request(Cc2Method.START_PRINT, params(true), LONG_TIMEOUT_MS)
+            // 1026: no bed mesh saved yet; force a leveling pass, as ElegooSlicer does.
+            if (e.code != 1026) throw e
+            c.request(Cc2Method.START_PRINT, params(forceLeveling = true), LONG_TIMEOUT_MS)
         }
     }
 
@@ -302,6 +327,17 @@ class Cc2Driver(
         },
         isFolder = (f / "type").str() == "folder",
     )
+
+    private fun tray(hubId: Int, trayId: Int) = buildJsonObject {
+        put("canvas_id", hubId)
+        put("tray_id", trayId)
+    }
+
+    override suspend fun storageInfo(): StorageInfo? {
+        val internal = (requireClient().request(Cc2Method.DISK_INFO) / "internal").obj() ?: return null
+        val total = (internal / "total_bytes").lng() ?: return null
+        return StorageInfo(total, (internal / "used_bytes").lng() ?: 0)
+    }
 
     override suspend fun deleteFiles(storage: Storage, names: List<String>) {
         requireClient().request(Cc2Method.FILE_DELETE, buildJsonObject {

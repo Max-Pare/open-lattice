@@ -4,6 +4,7 @@ import dev.openlattice.core.ConnectionState
 import dev.openlattice.core.MjpegReader
 import dev.openlattice.core.Storage
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.serialization.json.put
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -51,6 +52,31 @@ class Cc2LiveTest {
 
             val history = d.history()
             println("history: ${history.size}, latest: ${history.firstOrNull()}")
+
+            // Read-only probes of methods not seen in the capture.
+            val raw = Cc2Client(host, printer.serial, code, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO))
+            raw.connect()
+            for ((method, params) in listOf(
+                Cc2Method.DISK_INFO to null,
+                Cc2Method.FILE_DETAIL to kotlinx.serialization.json.buildJsonObject {
+                    put("storage_media", "local")
+                    put("filename", files.first().name)
+                },
+            )) {
+                val r = runCatching { raw.request(method, params) }
+                println("probe $method: ${r.getOrElse { "ERROR ${it.message}" }}")
+            }
+            raw.close()
+            history.firstOrNull { it.timelapse != null }?.timelapse?.let { t ->
+                val url = "http://$host/download?X-Token=$code&file_name=" + java.net.URLEncoder.encode(t.path, "UTF-8")
+                val quick = Cc2Driver.defaultHttp.newBuilder().readTimeout(5, java.util.concurrent.TimeUnit.SECONDS).build()
+                val r = runCatching {
+                    quick.newCall(Request.Builder().url(url).header("Range", "bytes=0-15").build()).execute().use {
+                        "HTTP ${it.code} ${it.header("Content-Type")} ${it.body.bytes().size} bytes"
+                    }
+                }
+                println("probe download (${t.path}, ready=${t.ready}): ${r.getOrElse { "ERROR $it" }}")
+            }
 
             val camera = d.cameraUrl()!!
             println("camera: $camera")

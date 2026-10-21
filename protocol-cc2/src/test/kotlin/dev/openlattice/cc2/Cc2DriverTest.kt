@@ -1,5 +1,6 @@
 package dev.openlattice.cc2
 
+import dev.openlattice.core.BuildPlate
 import dev.openlattice.core.ConnectionState
 import dev.openlattice.core.Fan
 import dev.openlattice.core.HistoryResult
@@ -81,7 +82,7 @@ class Cc2DriverTest {
             d.send(PrinterCommand.SetLight(true))
             d.send(PrinterCommand.SetFan(Fan.CHAMBER, 100))
             d.send(PrinterCommand.SetFan(Fan.AUX, 0))
-            d.send(PrinterCommand.StartPrint("ECC2_test.gcode", slotMap = listOf(SlotMapping(0, 0, 2))))
+            d.send(PrinterCommand.StartPrint("ECC2_test.gcode", autoBedLeveling = true, plate = BuildPlate.SMOOTH, slotMap = listOf(SlotMapping(0, 0, 2))))
 
             val byMethod = fake.requests().associateBy { (it / "method").int() }
             assertEquals("""{"power":1}""", byMethod[Cc2Method.SET_LIGHT]!!["params"].toString())
@@ -92,7 +93,8 @@ class Cc2DriverTest {
             assertEquals("ECC2_test.gcode", (start / "filename").str())
             assertEquals("local", (start / "storage_media").str())
             val config = (start / "config").obj()!!
-            assertEquals("A", (config / "print_layout").str())
+            assertEquals("B", (config / "print_layout").str())
+            assertEquals(true, (config / "printer_check").bool())
             assertEquals(false, (config / "bedlevel_force").bool())
             val slot = config["slot_map"]!!.jsonArray.single().jsonObject
             assertEquals(2, (slot / "tray_id").int())
@@ -185,6 +187,34 @@ class Cc2DriverTest {
             // Backoff starts at 2 s.
             withTimeout(5_000) { d.state.first { it.connection == ConnectionState.Connected } }
             assertFalse(fake.transport === first)
+        }
+    }
+
+    @Test
+    fun filamentCommandsAndDiskInfo() = runBlocking {
+        val fake = FakePrinter.withCapturedFixtures()
+        // Shape observed live on 02.01.01.07.
+        fake.results[Cc2Method.DISK_INFO] = Cc2Json.parseToJsonElement("""{"error_code":0,"internal":{"total_bytes":511647744,"used_bytes":95526912}}""").jsonObject
+        listOf(Cc2Method.SET_MONO_FILAMENT, Cc2Method.CANVAS_SET_FILAMENT, Cc2Method.CANVAS_LOAD).forEach {
+            fake.results[it] = buildJsonObject { put("error_code", 0) }
+        }
+        driver(fake).use { d ->
+            d.connect()
+            assertEquals(dev.openlattice.core.StorageInfo(511647744, 95526912), d.storageInfo())
+
+            d.send(PrinterCommand.SetFilament(-1, 0, dev.openlattice.core.FilamentMaterial.PETG, "#ff0000"))
+            d.send(PrinterCommand.SetFilament(0, 3, dev.openlattice.core.FilamentMaterial.PLA, "#00FF00"))
+            d.send(PrinterCommand.LoadTray(0, 2))
+            val reqs = fake.requests()
+            val mono = (reqs.first { (it / "method").int() == Cc2Method.SET_MONO_FILAMENT } / "params").obj()!!
+            assertEquals("PETG", (mono / "filament_type").str())
+            assertEquals("0x0100", (mono / "filament_code").str())
+            assertEquals("#FF0000", (mono / "filament_color").str())
+            assertEquals(0, (mono / "tray_id").int())
+            val canvas = (reqs.first { (it / "method").int() == Cc2Method.CANVAS_SET_FILAMENT } / "params").obj()!!
+            assertEquals(3, (canvas / "tray_id").int())
+            val load = (reqs.first { (it / "method").int() == Cc2Method.CANVAS_LOAD } / "params").obj()!!
+            assertEquals("""{"canvas_id":0,"tray_id":2}""", load.toString())
         }
     }
 

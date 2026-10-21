@@ -17,6 +17,8 @@ interface PrinterDriver : AutoCloseable {
     suspend fun send(command: PrinterCommand)
 
     suspend fun listFiles(storage: Storage): List<PrinterFile>
+    /** Capacity of the printer's internal storage, or null if unknown. */
+    suspend fun storageInfo(): StorageInfo?
     suspend fun deleteFiles(storage: Storage, names: List<String>)
     /** PNG bytes, or null when the file has no thumbnail. */
     suspend fun thumbnail(storage: Storage, name: String): ByteArray?
@@ -39,7 +41,7 @@ data class PrinterInfo(
     val host: String,
 )
 
-enum class Capability { CAMERA, CANVAS, USB_STORAGE, TIMELAPSE, CHAMBER_FAN, AUX_FAN, AI_DETECTION }
+enum class Capability { CAMERA, CANVAS, USB_STORAGE, TIMELAPSE, CHAMBER_FAN, AUX_FAN }
 
 enum class Storage { LOCAL, USB }
 
@@ -58,16 +60,49 @@ sealed interface PrinterCommand {
     data class StartPrint(
         val fileName: String,
         val storage: Storage = Storage.LOCAL,
-        val bedLeveling: Boolean = false,
+        /** Run auto bed leveling before the print. */
+        val autoBedLeveling: Boolean = false,
+        val plate: BuildPlate = BuildPlate.TEXTURED,
         val timelapse: Boolean = false,
         /** Gcode tool index -> (hub, tray). Empty means single-material / external spool. */
         val slotMap: List<SlotMapping> = emptyList(),
     ) : PrinterCommand
     data class Rename(val name: String) : PrinterCommand
+    /** Load / unload through the external spool path. */
     data object LoadFilament : PrinterCommand
     data object UnloadFilament : PrinterCommand
+    /** Load / unload one CANVAS tray. */
+    data class LoadTray(val hubId: Int, val trayId: Int) : PrinterCommand
+    data class UnloadTray(val hubId: Int, val trayId: Int) : PrinterCommand
+    /** Sets what is loaded in a tray; [hubId] -1 means the external spool. */
+    data class SetFilament(val hubId: Int, val trayId: Int, val material: FilamentMaterial, val color: String) : PrinterCommand
     data class SetAutoRefill(val enabled: Boolean) : PrinterCommand
     data object Refresh : PrinterCommand
+}
+
+enum class BuildPlate { TEXTURED, SMOOTH }
+
+data class StorageInfo(val totalBytes: Long, val usedBytes: Long)
+
+/**
+ * Filament types the CC2 knows, with its type code and nozzle range.
+ * Table from elegoo-cc2-webui (MIT, (c) nyakaspeter), server/src/cc2/cc2Printer.ts.
+ */
+enum class FilamentMaterial(val label: String, val code: String, val minTemp: Int, val maxTemp: Int) {
+    PLA("PLA", "0x0000", 190, 230),
+    PLA_PLUS("PLA+", "0x0001", 190, 230),
+    PLA_CF("PLA-CF", "0x0004", 210, 240),
+    PETG("PETG", "0x0100", 230, 260),
+    ABS("ABS", "0x0200", 240, 280),
+    TPU("TPU", "0x0301", 220, 240),
+    PA_CF("PA-CF", "0x0401", 260, 300),
+    PC("PC", "0x0600", 260, 310),
+    ASA("ASA", "0x0800", 240, 280),
+    HIPS("HIPS", "0x0B00", 220, 260);
+
+    companion object {
+        fun fromLabel(label: String): FilamentMaterial? = entries.firstOrNull { it.label.equals(label.trim(), ignoreCase = true) }
+    }
 }
 
 data class SlotMapping(val tool: Int, val hubId: Int, val trayId: Int)

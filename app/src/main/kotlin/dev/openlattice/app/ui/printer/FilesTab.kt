@@ -29,6 +29,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -55,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.openlattice.app.ui.formatBytes
 import dev.openlattice.app.ui.formatDuration
+import dev.openlattice.core.BuildPlate
 import dev.openlattice.core.ConnectionState
 import dev.openlattice.core.FilamentSlot
 import dev.openlattice.core.PrinterCommand
@@ -82,6 +84,15 @@ fun FilesTab(vm: PrinterViewModel, state: PrinterState) {
                 }
             }
             IconButton(onClick = { vm.loadFiles() }) { Icon(Icons.Default.Refresh, "Refresh") }
+        }
+        ui.space?.let { sp ->
+            Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp)) {
+                LinearProgressIndicator(progress = { if (sp.totalBytes > 0) sp.usedBytes.toFloat() / sp.totalBytes else 0f }, modifier = Modifier.fillMaxWidth())
+                Text(
+                    "${formatBytes(sp.usedBytes)} of ${formatBytes(sp.totalBytes)} used · ${formatBytes(sp.totalBytes - sp.usedBytes)} free",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
         }
         FilledTonalButton(
             onClick = { picker.launch(arrayOf("*/*")) },
@@ -146,6 +157,7 @@ internal fun parseColor(hex: String?): Color =
 @Composable
 private fun FileDialog(vm: PrinterViewModel, state: PrinterState, storage: Storage, f: PrinterFile, onDismiss: () -> Unit) {
     var leveling by remember { mutableStateOf(false) }
+    var plate by remember { mutableStateOf(BuildPlate.TEXTURED) }
     var timelapse by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     val slots = state.filament?.hubs.orEmpty().flatMap { it.slots }.filter { it.present }
@@ -172,8 +184,13 @@ private fun FileDialog(vm: PrinterViewModel, state: PrinterState, storage: Stora
                     ).joinToString("\n"),
                     style = MaterialTheme.typography.bodySmall,
                 )
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    listOf(BuildPlate.TEXTURED to "Textured plate", BuildPlate.SMOOTH to "Smooth plate").forEachIndexed { i, (p, label) ->
+                        SegmentedButton(selected = plate == p, onClick = { plate = p }, shape = SegmentedButtonDefaults.itemShape(i, 2)) { Text(label, maxLines = 1) }
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Bed leveling before print", Modifier.weight(1f))
+                    Text("Auto bed leveling", Modifier.weight(1f))
                     Switch(leveling, { leveling = it })
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -198,7 +215,8 @@ private fun FileDialog(vm: PrinterViewModel, state: PrinterState, storage: Stora
                         PrinterCommand.StartPrint(
                             fileName = f.name,
                             storage = storage,
-                            bedLeveling = leveling,
+                            autoBedLeveling = leveling,
+                            plate = plate,
                             timelapse = timelapse,
                             slotMap = mapping.mapNotNull { (tool, slot) -> slot?.let { SlotMapping(tool, it.hubId, it.trayId) } },
                         ),
