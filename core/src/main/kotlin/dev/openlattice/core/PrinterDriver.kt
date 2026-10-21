@@ -60,6 +60,10 @@ sealed interface PrinterCommand {
     data class SetSpeedMode(val mode: SpeedMode) : PrinterCommand
     /** [axes] is any combination of "x", "y", "z". */
     data class Home(val axes: String = "xyz") : PrinterCommand
+    /**
+     * Relative move in printer coordinates. For Z, positive widens the nozzle–bed gap
+     * (on the CC2 the bed moves down). Moves that would end below Z 0 are refused.
+     */
     data class Jog(val axis: Char, val distanceMm: Double) : PrinterCommand
     data class StartPrint(
         val fileName: String,
@@ -79,7 +83,7 @@ sealed interface PrinterCommand {
     data class LoadTray(val hubId: Int, val trayId: Int) : PrinterCommand
     data class UnloadTray(val hubId: Int, val trayId: Int) : PrinterCommand
     /** Sets what is loaded in a tray; [hubId] -1 means the external spool. */
-    data class SetFilament(val hubId: Int, val trayId: Int, val material: FilamentMaterial, val color: String) : PrinterCommand
+    data class SetFilament(val hubId: Int, val trayId: Int, val material: FilamentMaterial, val color: String, val brand: String = "Generic") : PrinterCommand
     data class SetAutoRefill(val enabled: Boolean) : PrinterCommand
     data object Refresh : PrinterCommand
 }

@@ -37,6 +37,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -242,13 +244,25 @@ class Cc2Driver(
             is PrinterCommand.SetSpeedMode -> c.request(Cc2Method.SET_SPEED_MODE, buildJsonObject {
                 put("mode", Cc2StatusMapper.SPEED_MODES.indexOf(command.mode))
             })
-            is PrinterCommand.Home -> c.request(Cc2Method.HOME_AXES, buildJsonObject { put("homed_axes", command.axes.lowercase()) }, LONG_TIMEOUT_MS)
-            is PrinterCommand.Jog -> c.request(Cc2Method.MOVE_AXES, buildJsonObject {
+            is PrinterCommand.Home -> {
+                val nozzleWasOff = (_state.value.nozzle?.target ?: 0.0) == 0.0
+                // Firmware 02.01.01.07 homes all three axes regardless of homed_axes.
+                c.request(Cc2Method.HOME_AXES, buildJsonObject { put("homed_axes", command.axes.lowercase()) }, LONG_TIMEOUT_MS)
+                // Homing probes with the nozzle at 140 °C and leaves it there; switch it back off.
+                if (nozzleWasOff) scope.launch { turnNozzleOffAfterHoming(c) }
+            }
+            is PrinterCommand.Jog -> {
                 val axis = command.axis.lowercaseChar()
-                put("axes", axis.toString())
-                // The stock UI sends Z inverted relative to its buttons (bed moves, not the head).
-                put("distance", if (axis == 'z') -command.distanceMm else command.distanceMm)
-            })
+                // distance is in printer coordinates (verified live: -1 took Z from 5.12 to 4.12).
+                val z = _state.value.position?.z
+                if (axis == 'z' && command.distanceMm < 0 && (z == null || z + command.distanceMm < 0.0)) {
+                    throw PrinterCommandException(-1, if (z == null) "Z position unknown; home first" else "Move would bring the bed into the nozzle (Z %.1f)".format(z + command.distanceMm))
+                }
+                c.request(Cc2Method.MOVE_AXES, buildJsonObject {
+                    put("axes", axis.toString())
+                    put("distance", command.distanceMm)
+                })
+            }
             is PrinterCommand.StartPrint -> startPrint(c, command)
             is PrinterCommand.Rename -> c.request(Cc2Method.SET_NAME, buildJsonObject { put("hostname", command.name) })
             PrinterCommand.LoadFilament -> c.request(Cc2Method.FEED, timeoutMs = FILAMENT_TIMEOUT_MS)
@@ -259,7 +273,7 @@ class Cc2Driver(
                 // Shape from elegoo-cc2-webui; the external spool takes the same fields with canvas 0 / tray 0.
                 val m = command.material
                 val params = buildJsonObject {
-                    put("brand", "Generic")
+                    put("brand", command.brand.ifBlank { "Generic" })
                     put("filament_type", m.label)
                     put("filament_name", m.label)
                     put("filament_code", m.code)
@@ -270,6 +284,8 @@ class Cc2Driver(
                     put("tray_id", if (command.hubId < 0) 0 else command.trayId)
                 }
                 c.request(if (command.hubId < 0) Cc2Method.SET_MONO_FILAMENT else Cc2Method.CANVAS_SET_FILAMENT, params)
+                // The printer applies it a moment after answering; an immediate read returns the old values.
+                delay(FILAMENT_SETTLE_MS)
                 refreshFilament()
             }
             is PrinterCommand.SetAutoRefill -> {
@@ -358,6 +374,16 @@ class Cc2Driver(
         },
         isFolder = (f / "type").str() == "folder",
     )
+
+    private suspend fun turnNozzleOffAfterHoming(c: Cc2Client) {
+        withTimeoutOrNull(10_000) { _state.first { it.machine == MachineState.HOMING || it.machine == MachineState.BUSY } }
+        val done = withTimeoutOrNull(180_000) {
+            _state.first { it.machine == MachineState.IDLE && it.homedAxes.contains('z') }
+        } ?: return
+        if ((done.nozzle?.target ?: 0.0) > 0.0 && client === c) {
+            runCatching { c.request(Cc2Method.SET_TEMPERATURE, buildJsonObject { put("extruder", 0) }) }
+        }
+    }
 
     private fun tray(hubId: Int, trayId: Int) = buildJsonObject {
         put("canvas_id", hubId)
@@ -458,6 +484,7 @@ class Cc2Driver(
         private const val MAX_FILES = 1000
         private const val LONG_TIMEOUT_MS = 30_000L
         private const val FILAMENT_TIMEOUT_MS = 300_000L
+        private const val FILAMENT_SETTLE_MS = 1_500L
         private const val INITIAL_BACKOFF_MS = 2_000L
         private const val MAX_BACKOFF_MS = 30_000L
 

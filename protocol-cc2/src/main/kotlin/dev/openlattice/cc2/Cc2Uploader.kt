@@ -44,9 +44,13 @@ class Cc2Uploader(
                 coroutineContext.ensureActive()
                 val n = input.readFully(buf)
                 if (n <= 0) throw IOException("Source ended at $offset of $total bytes")
-                val next = putChunk(source.name, md5, buf, n, offset, total)
-                if (next != offset + n) throw PrinterCommandException(9000, "Printer expected offset $next, sent ${offset + n}")
-                offset = next
+                val reported = putChunk(source.name, md5, buf, n, offset, total)
+                // Firmware 02.01.01.07 answers the first chunk with the inclusive end (offset + n - 1)
+                // and later chunks with the next offset; ElegooLink ignores it. Accept both, reject anything else.
+                if (reported != offset + n && reported != offset + n - 1) {
+                    throw PrinterCommandException(9000, "Printer reported offset $reported after sending up to ${offset + n}")
+                }
+                offset += n
                 emit(UploadProgress(offset, total))
             }
         }

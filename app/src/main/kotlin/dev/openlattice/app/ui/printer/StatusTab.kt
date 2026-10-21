@@ -261,6 +261,8 @@ private fun FanSlider(label: String, percent: Int?, onSet: (Int) -> Unit) {
 @Composable
 private fun SpeedCard(vm: PrinterViewModel, state: PrinterState) {
     val current = state.speedMode ?: return
+    // The printer rejects speed changes outside a print (error 1010).
+    if (!state.machine.isJobActive) return
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Print speed", style = MaterialTheme.typography.titleSmall)
@@ -315,19 +317,21 @@ private fun MotionCard(vm: PrinterViewModel, state: PrinterState) {
                     FilledTonalIconButton(onClick = { vm.send(PrinterCommand.Jog('y', step)) }) { Icon(Icons.Default.KeyboardArrowUp, "Y+") }
                     Row {
                         FilledTonalIconButton(onClick = { vm.send(PrinterCommand.Jog('x', -step)) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "X-") }
-                        FilledTonalIconButton(onClick = { vm.send(PrinterCommand.Home("xy")) }) { Icon(Icons.Default.Home, "Home XY") }
+                        FilledTonalIconButton(onClick = { vm.send(PrinterCommand.Home()) }) { Icon(Icons.Default.Home, "Home all axes") }
                         FilledTonalIconButton(onClick = { vm.send(PrinterCommand.Jog('x', step)) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "X+") }
                     }
                     FilledTonalIconButton(onClick = { vm.send(PrinterCommand.Jog('y', -step)) }) { Icon(Icons.Default.KeyboardArrowDown, "Y-") }
                 }
                 // Z column
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    FilledTonalIconButton(onClick = { vm.send(PrinterCommand.Jog('z', step)) }) { Icon(Icons.Default.KeyboardArrowUp, "Z+") }
-                    FilledTonalIconButton(onClick = { vm.send(PrinterCommand.Home("z")) }) { Text("Z") }
-                    FilledTonalIconButton(onClick = { vm.send(PrinterCommand.Jog('z', -step)) }) { Icon(Icons.Default.KeyboardArrowDown, "Z-") }
+                    // Bed up = smaller nozzle–bed gap = Z decreases.
+                    FilledTonalIconButton(onClick = { vm.send(PrinterCommand.Jog('z', -step)) }) { Icon(Icons.Default.KeyboardArrowUp, "Bed up") }
+                    Text("Bed", Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.labelLarge)
+                    FilledTonalIconButton(onClick = { vm.send(PrinterCommand.Jog('z', step)) }) { Icon(Icons.Default.KeyboardArrowDown, "Bed down") }
                 }
             }
-            OutlinedButton(onClick = { vm.send(PrinterCommand.Home("xyz")) }, modifier = Modifier.fillMaxWidth()) { Text("Home all axes") }
+            // The CC2 always homes X, Y and Z, whatever axes are requested.
+            OutlinedButton(onClick = { vm.send(PrinterCommand.Home()) }, modifier = Modifier.fillMaxWidth()) { Text("Home all axes") }
         }
     }
 }

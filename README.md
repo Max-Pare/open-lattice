@@ -20,12 +20,13 @@ Verified against a real CC2 on firmware 02.01.01.07 unless marked *untested*.
 - Live status: job progress, layers, time left, temperatures, fans, light, speed mode
 - Live camera (MJPEG), full screen, one shared stream per printer
 - Pause / resume / stop; light toggle
-- Set temperatures, fans, speed mode; jog and home axes (*untested*)
-- Files on the printer and USB: thumbnails, details, storage usage, delete (*untested*)
-- Upload a sliced file from the phone or via Android share (*untested*)
+- Set temperatures and fans; home and jog axes (the CC2 always homes X, Y and Z); speed mode during a print (*untested*)
+- Files on the printer and USB: thumbnails, details, storage usage, delete
+- Upload a sliced file from the phone or via Android share
 - Start a print with plate type, auto bed leveling, timelapse and CANVAS slot mapping (*untested*)
 - Print history from the printer
-- Filament: external spool and CANVAS trays, edit material/colour (*untested*), load/unload, auto refill (*untested*)
+- Filament: external spool and CANVAS trays, edit material/colour, load/unload (*untested*), auto refill (*untested*)
+- Rename the printer
 - Background monitor while printing: progress notification and alerts for finished, stopped,
   errors and filament runout; plus a 15-minute check for prints started while the app was closed
 
@@ -53,6 +54,13 @@ Live, read-only protocol checks against a real printer (sends nothing that chang
 
 ```sh
 OPEN_LATTICE_CC2_HOST=192.168.1.x OPEN_LATTICE_CC2_CODE=<access code> ./gradlew :protocol-cc2:test --tests '*Cc2LiveTest*'
+```
+
+Reversible control checks (idle printer only: uploads and deletes a comments-only file, renames and
+restores, warms nozzle/bed briefly, toggles fans, homes, small X/Z moves):
+
+```sh
+OPEN_LATTICE_CC2_CONTROL=1 OPEN_LATTICE_CC2_HOST=... OPEN_LATTICE_CC2_CODE=... ./gradlew :protocol-cc2:test --tests '*Cc2LiveControlTest*'
 ```
 
 ## Layout

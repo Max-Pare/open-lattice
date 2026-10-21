@@ -125,7 +125,8 @@ fun FilamentTab(vm: PrinterViewModel, state: PrinterState) {
     editing?.let { slot ->
         FilamentEditor(slot, onDismiss = { editing = null }) { material, color ->
             editing = null
-            vm.send(PrinterCommand.SetFilament(slot.hubId, slot.trayId, material, color), success = "Filament updated")
+            // Keep the spool brand unless it is unknown.
+            vm.send(PrinterCommand.SetFilament(slot.hubId, slot.trayId, material, color, slot.brand.ifBlank { "Generic" }), success = "Filament updated")
         }
     }
 }

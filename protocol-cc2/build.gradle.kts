@@ -23,4 +23,5 @@ tasks.test {
     // OPEN_LATTICE_CC2_HOST=192.168.1.116 OPEN_LATTICE_CC2_CODE=xxxxxx ./gradlew :protocol-cc2:test
     environment("OPEN_LATTICE_CC2_HOST", System.getenv("OPEN_LATTICE_CC2_HOST") ?: "")
     environment("OPEN_LATTICE_CC2_CODE", System.getenv("OPEN_LATTICE_CC2_CODE") ?: "")
+    environment("OPEN_LATTICE_CC2_CONTROL", System.getenv("OPEN_LATTICE_CC2_CONTROL") ?: "")
 }

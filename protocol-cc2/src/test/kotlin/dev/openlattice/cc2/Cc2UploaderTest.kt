@@ -31,7 +31,8 @@ class Cc2UploaderTest {
     @Test
     fun uploadsInChunksWithCapturedHeaders() = runBlocking {
         val data = ByteArray(2500) { (it % 251).toByte() }
-        server.enqueue(ok(1024)); server.enqueue(ok(2048)); server.enqueue(ok(2500))
+        // First reply mimics the firmware quirk: inclusive end instead of the next offset.
+        server.enqueue(ok(1023)); server.enqueue(ok(2048)); server.enqueue(ok(2500))
         val uploader = Cc2Uploader(OkHttpClient(), server.url("/").toString().trimEnd('/'), "abc123", chunkSize = 1024)
 
         val progress = uploader.upload(source(data)).toList()

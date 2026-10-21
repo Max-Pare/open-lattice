@@ -257,6 +257,25 @@ class Cc2DriverTest {
     }
 
     @Test
+    fun zJogUsesPrinterCoordinatesAndRefusesBelowZero() = runBlocking {
+        val fake = FakePrinter.withCapturedFixtures() // idle fixture has z = 80
+        driver(fake).use { d ->
+            d.connect()
+            withTimeout(2_000) { d.state.first { it.position != null } }
+            d.send(PrinterCommand.Jog('z', -5.0))
+            val move = fake.requests().last { (it / "method").int() == Cc2Method.MOVE_AXES }
+            assertEquals("""{"axes":"z","distance":-5.0}""", move["params"].toString())
+            try {
+                d.send(PrinterCommand.Jog('z', -100.0))
+                fail("expected refusal")
+            } catch (e: PrinterCommandException) {
+                assertTrue(e.message!!.contains("nozzle"))
+            }
+            assertEquals(1, fake.requests().count { (it / "method").int() == Cc2Method.MOVE_AXES })
+        }
+    }
+
+    @Test
     fun discoveryReplyParses() {
         val r = Cc2Discovery.parse("192.168.1.116", fixture("discovery_reply.json").toByteArray())!!
         assertEquals("F01TESTSERIAL01", r.serial)
