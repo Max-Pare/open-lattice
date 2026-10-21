@@ -13,6 +13,25 @@ Everything talks directly to the printer on your network, or over a VPN with sub
 | Centauri Carbon | SDCP v3 WebSocket (`:3030`) | planned |
 | Saturn 4 Ultra / Mars 5 Ultra | SDCP v3 WebSocket (`:3030`) | planned |
 
+## Features (Centauri Carbon 2)
+Verified against a real CC2 on firmware 02.01.01.07 unless marked *untested*.
+
+- Add printers by LAN discovery or by IP / hostname (works over VPN), access-code check
+- Live status: job progress, layers, time left, temperatures, fans, light, speed mode
+- Live camera (MJPEG), full screen, one shared stream per printer
+- Pause / resume / stop; light toggle
+- Set temperatures, fans, speed mode; jog and home axes (*untested*)
+- Files on the printer and USB: thumbnails, details, storage usage, delete (*untested*)
+- Upload a sliced file from the phone or via Android share (*untested*)
+- Start a print with plate type, auto bed leveling, timelapse and CANVAS slot mapping (*untested*)
+- Print history from the printer
+- Filament: external spool and CANVAS trays, edit material/colour (*untested*), load/unload, auto refill (*untested*)
+- Background monitor while printing: progress notification and alerts for finished, stopped,
+  errors and filament runout; plus a 15-minute check for prints started while the app was closed
+
+Not possible without ELEGOO's cloud: account binding, the Nexprint model library and its cloud
+slicing, firmware updates, and history synced across devices.
+
 ## Printer setup (Centauri Carbon 2)
 1. On the printer: **Settings → Network → LAN Only Mode** on. The local API is closed otherwise.
    (Elegoo Matrix stops working in this mode; that is the point of this app.)
