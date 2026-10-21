@@ -1,1 +1,20 @@
+_tmp/
 *.pub
+id_rsa*
+
+# Gradle / Android
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+.kotlin/
+captures/
+.cxx/
+.externalNativeBuild/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store

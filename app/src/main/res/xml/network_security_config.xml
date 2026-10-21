@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Printers only speak plain HTTP/MQTT on the LAN (no TLS available on the device), and the
+    user may reach them by any private IP, VPN address or hostname, which domain-config cannot
+    enumerate. The app makes no other network connections.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

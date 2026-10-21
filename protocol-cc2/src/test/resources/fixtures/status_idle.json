@@ -1,0 +1,73 @@
+{
+ "error_code": 0,
+ "external_device": {
+  "camera": true,
+  "type": "0",
+  "u_disk": false
+ },
+ "extruder": {
+  "filament_detect_enable": 1,
+  "filament_detected": 1,
+  "target": 0,
+  "temperature": 25
+ },
+ "fans": {
+  "aux_fan": {
+   "speed": 0.0
+  },
+  "box_fan": {
+   "speed": 0.0
+  },
+  "controller_fan": {
+   "speed": 0.0
+  },
+  "fan": {
+   "speed": 0.0
+  },
+  "heater_fan": {
+   "speed": 0.0
+  }
+ },
+ "gcode_move": {
+  "extruder": 0.0,
+  "speed": 3000,
+  "speed_mode": 1,
+  "x": 52.5,
+  "y": 264.0,
+  "z": 80.0
+ },
+ "heater_bed": {
+  "target": 0,
+  "temperature": 20
+ },
+ "led": {
+  "status": 0
+ },
+ "machine_status": {
+  "exception_status": [],
+  "progress": 100,
+  "status": 1,
+  "sub_status": 0,
+  "sub_status_reason_code": 0
+ },
+ "print_status": {
+  "bed_mesh_detect": true,
+  "current_layer": 204,
+  "enable": true,
+  "filament_detect": false,
+  "filename": "",
+  "print_duration": 2077,
+  "remaining_time_sec": 0,
+  "state": "",
+  "total_duration": 2352,
+  "uuid": ""
+ },
+ "tool_head": {
+  "homed_axes": ""
+ },
+ "ztemperature_sensor": {
+  "measured_max_temperature": 0,
+  "measured_min_temperature": 0,
+  "temperature": 21
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "canvas_info": {
+  "active_canvas_id": 0,
+  "active_tray_id": -1,
+  "auto_refill": false,
+  "canvas_list": [
+   {
+    "canvas_id": 0,
+    "connected": 0,
+    "tray_list": [
+     {
+      "brand": "",
+      "filament_code": "",
+      "filament_color": "",
+      "filament_name": "",
+      "filament_type": "",
+      "max_nozzle_temp": 0,
+      "min_nozzle_temp": 0,
+      "status": 0,
+      "tray_id": 0
+     },
+     {
+      "brand": "",
+      "filament_code": "",
+      "filament_color": "",
+      "filament_name": "",
+      "filament_type": "",
+      "max_nozzle_temp": 0,
+      "min_nozzle_temp": 0,
+      "status": 0,
+      "tray_id": 0
+     },
+     {
+      "brand": "",
+      "filament_code": "",
+      "filament_color": "",
+      "filament_name": "",
+      "filament_type": "",
+      "max_nozzle_temp": 0,
+      "min_nozzle_temp": 0,
+      "status": 0,
+      "tray_id": 0
+     },
+     {
+      "brand": "",
+      "filament_code": "",
+      "filament_color": "",
+      "filament_name": "",
+      "filament_type": "",
+      "max_nozzle_temp": 0,
+      "min_nozzle_temp": 0,
+      "status": 0,
+      "tray_id": 0
+     }
+    ]
+   }
+  ]
+ },
+ "error_code": 0
+}

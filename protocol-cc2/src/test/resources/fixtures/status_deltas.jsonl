@@ -1,0 +1,40 @@
+{ "id": 1343, "method": 6000, "result": {  "extruder": {   "temperature": 25  },  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1344, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1345, "method": 6000, "result": {  "heater_bed": {   "temperature": 20  } }}
+{ "id": 1346, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1347, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1348, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1349, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1350, "method": 6000, "result": {  "led": {   "status": 1  },  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1351, "method": 6000, "result": {  "led": {   "status": 0  } }}
+{ "id": 1352, "method": 6000, "result": {  "fans": {   "aux_fan": {    "speed": 255.0   }  },  "heater_bed": {   "temperature": 19  },  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1353, "method": 6000, "result": {  "fans": {   "aux_fan": {    "speed": 0.0   }  } }}
+{ "id": 1354, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1355, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1356, "method": 6000, "result": {  "extruder": {   "temperature": 26  },  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1357, "method": 6000, "result": {  "extruder": {   "temperature": 25  } }}
+{ "id": 1358, "method": 6000, "result": {  "extruder": {   "temperature": 26  } }}
+{ "id": 1359, "method": 6000, "result": {  "extruder": {   "temperature": 25  },  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1360, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1361, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1362, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1363, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1364, "method": 6000, "result": {  "heater_bed": {   "temperature": 20  },  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1365, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1366, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1367, "method": 6000, "result": {  "machine_status": {   "status": 11,   "sub_status": 3000  } }}
+{ "id": 1368, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1369, "method": 6000, "result": {  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1370, "method": 6000, "result": {  "machine_status": {   "sub_status": 3001  } }}
+{ "id": 1371, "method": 6000, "result": {  "machine_status": {   "progress": 0  },  "print_status": {   "current_layer": 0,   "filename": "",   "print_duration": 0,   "remaining_time_sec": 0,   "total_duration": 0,   "total_layer": 0,   "uuid": ""  } }}
+{ "id": 1372, "method": 6000, "result": {  "machine_status": {   "status": 1,   "sub_status": 0  } }}
+{ "id": 1373, "method": 6000, "result": {  "heater_bed": {   "temperature": 21  } }}
+{ "id": 1374, "method": 6000, "result": {  "machine_status": {   "status": 2  } }}
+{ "id": 1375, "method": 6000, "result": {  "machine_status": {   "progress": 0  },  "print_status": {   "current_layer": 0,   "file_create_time": 1792593334,   "filename": "ECC2_0.4_manoploasdka_Elegoo PLA _0.2_5h42m.gcode",   "print_duration": 0,   "remaining_time_sec": 20490,   "total_duration": 0,   "total_layer": 210,   "uuid": "6fcf70cf-db9d-404b-82a4-74b178c24217"  } }}
+{ "id": 1376, "method": 6000, "result": {  "machine_status": {   "sub_status": 1405  } }}
+{ "id": 1377, "method": 6000, "result": {  "extruder": {   "target": 140  },  "heater_bed": {   "target": 60  },  "print_status": {   "remaining_time_sec": 20460,   "state": "printing"  },  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1378, "method": 6000, "result": {  "fans": {   "controller_fan": {    "speed": 255.0   },   "heater_fan": {    "speed": 255.0   }  },  "print_status": {   "total_duration": 1  },  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1379, "method": 6000, "result": {  "extruder": {   "temperature": 26  },  "print_status": {   "total_duration": 2  } }}
+{ "id": 1380, "method": 6000, "result": {  "extruder": {   "temperature": 30  },  "print_status": {   "total_duration": 3  },  "ztemperature_sensor": {   "temperature": 20  } }}
+{ "id": 1381, "method": 6000, "result": {  "extruder": {   "temperature": 36  },  "heater_bed": {   "temperature": 22  },  "print_status": {   "total_duration": 4  },  "ztemperature_sensor": {   "temperature": 21  } }}
+{ "id": 1382, "method": 6000, "result": {  "extruder": {   "temperature": 44  },  "heater_bed": {   "temperature": 23  },  "print_status": {   "total_duration": 5  },  "ztemperature_sensor": {   "temperature": 20  } }}

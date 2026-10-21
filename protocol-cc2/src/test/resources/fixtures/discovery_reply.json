@@ -1,0 +1,11 @@
+{
+ "id": 0,
+ "result": {
+  "host_name": "Test CC2",
+  "lan_status": 1,
+  "machine_model": "Centauri Carbon 2",
+  "protocol_version": "1.0.0",
+  "sn": "F01TESTSERIAL01",
+  "token_status": 1
+ }
+}

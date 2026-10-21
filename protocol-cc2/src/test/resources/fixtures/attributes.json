@@ -1,0 +1,14 @@
+{
+ "error_code": 0,
+ "hardware_version": "",
+ "hostname": "Test CC2",
+ "ip": "192.168.1.116",
+ "machine_model": "Centauri Carbon 2",
+ "protocol_version": "1.0.0",
+ "sn": "F01TESTSERIAL01",
+ "software_version": {
+  "mcu_version": "00.00.00.00",
+  "ota_version": "02.01.01.07",
+  "soc_version": ""
+ }
+}

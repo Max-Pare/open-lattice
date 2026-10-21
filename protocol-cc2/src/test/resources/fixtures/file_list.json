@@ -1,0 +1,367 @@
+{
+ "error_code": 0,
+ "file_list": [
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1792578688,
+   "filename": "ECC2_0.4_manoploasdka_Elegoo PLA _0.2_40m35s.gcode",
+   "last_print_time": 0,
+   "layer": 204,
+   "print_time": 2435,
+   "size": 5354917,
+   "total_filament_used": 16.59,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1792575390,
+   "filename": "ECC2_0.4_manoploasdka_Elegoo PLA _0.2_39m21s.gcode",
+   "last_print_time": 0,
+   "layer": 204,
+   "print_time": 2361,
+   "size": 5950064,
+   "total_filament_used": 16.55,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1792523272,
+   "filename": "ECC2_0.4_manopola calolifero_Elegoo PLA _0.2_31m42s.gcode",
+   "last_print_time": 0,
+   "layer": 153,
+   "print_time": 1902,
+   "size": 4566225,
+   "total_filament_used": 16.04,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1792413394,
+   "filename": "ECC2_0.4_keycaps_Elegoo PLA _0.12_51m55s.gcode",
+   "last_print_time": 0,
+   "layer": 79,
+   "print_time": 3115,
+   "size": 3756038,
+   "total_filament_used": 8.73,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1792401577,
+   "filename": "ECC2_0.4_Keycap-Gateron-Kailh_Elegoo PLA _0.12_42m13s.gcode",
+   "last_print_time": 0,
+   "layer": 78,
+   "print_time": 2533,
+   "size": 3463276,
+   "total_filament_used": 6.91,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1792343535,
+   "filename": "ECC2_0.4_asknmuller_Elegoo PLA _0.16_1h21m.gcode",
+   "last_print_time": 0,
+   "layer": 563,
+   "print_time": 4836,
+   "size": 28983360,
+   "total_filament_used": 33.2,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1792002962,
+   "filename": "ECC2_0.4_base_Elegoo PLA _0.2_1h48m.gcode",
+   "last_print_time": 0,
+   "layer": 163,
+   "print_time": 6485,
+   "size": 11568193,
+   "total_filament_used": 57.59,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791978149,
+   "filename": "ECC2_0.4_trippa_Elegoo PLA Basic _0.2_1h53m.gcode",
+   "last_print_time": 0,
+   "layer": 90,
+   "print_time": 6783,
+   "size": 10068201,
+   "total_filament_used": 57.01,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791824719,
+   "filename": "ECC2_0.4_trippatemp_Elegoo PLA Basic _0.2_4h31m.gcode",
+   "last_print_time": 0,
+   "layer": 78,
+   "print_time": 16233,
+   "size": 25698708,
+   "total_filament_used": 140.5,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791810590,
+   "filename": "ECC2_0.4_Assembly_Elegoo PLA Basic _0.28_1h33m.gcode",
+   "last_print_time": 0,
+   "layer": 275,
+   "print_time": 5587,
+   "size": 12935053,
+   "total_filament_used": 77.75,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791790104,
+   "filename": "ECC2_0.4_test trippa4_Bambu PLA Basic _0.2_4h24m.gcode",
+   "last_print_time": 0,
+   "layer": 81,
+   "print_time": 15831,
+   "size": 10950528,
+   "total_filament_used": 172.9,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791712340,
+   "filename": "ECC2_0.4_portapenna_Bambu PLA Basic _0.2_56m21s.gcode",
+   "last_print_time": 0,
+   "layer": 448,
+   "print_time": 3381,
+   "size": 11253618,
+   "total_filament_used": 22.8,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791661075,
+   "filename": "ECC2_0.4_johnny slithercock_Bambu PLA Basic _0.12_3h13m.gcode",
+   "last_print_time": 0,
+   "layer": 1081,
+   "print_time": 11608,
+   "size": 32348202,
+   "total_filament_used": 36.32,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791538318,
+   "filename": "ECC2_0.4_test trippa4_Bambu PLA Basic _0.2_6h55m.gcode",
+   "last_print_time": 0,
+   "layer": 81,
+   "print_time": 24911,
+   "size": 22509111,
+   "total_filament_used": 270.46,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791528015,
+   "filename": "ECC2_0.4_test trippa4_Generic PLA _0.2_6h49m.gcode",
+   "last_print_time": 0,
+   "layer": 82,
+   "print_time": 24510,
+   "size": 20534769,
+   "total_filament_used": 265.87,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791404627,
+   "filename": "ECC2_0.4_trippa_Generic PLA _0.22_5h11m.gcode",
+   "last_print_time": 0,
+   "layer": 198,
+   "print_time": 18659,
+   "size": 37209660,
+   "total_filament_used": 115.16,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791381300,
+   "filename": "ECC2_0.4_trippa_Generic PLA _0.22_4h42m.gcode",
+   "last_print_time": 0,
+   "layer": 247,
+   "print_time": 16901,
+   "size": 31506411,
+   "total_filament_used": 105.75,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791365748,
+   "filename": "ECC2_0.4_trippa_Generic PLA _0.22_3h36m.gcode",
+   "last_print_time": 0,
+   "layer": 172,
+   "print_time": 12952,
+   "size": 23054200,
+   "total_filament_used": 95.87,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FFFFFF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791362659,
+   "filename": "ECC2_0.4_trippa_Generic PLA _0.22_4h20m.gcode",
+   "last_print_time": 0,
+   "layer": 1057,
+   "print_time": 15613,
+   "size": 31347604,
+   "total_filament_used": 87.82,
+   "total_print_times": 0,
+   "type": "file"
+  },
+  {
+   "color_map": [
+    {
+     "color": "#FF00FF",
+     "name": "PLA",
+     "t": 0
+    }
+   ],
+   "create_time": 1791310526,
+   "filename": "Halloween Sitting Witch – Shelf Decor-1.gcode",
+   "last_print_time": 0,
+   "layer": 350,
+   "print_time": 10456,
+   "size": 25798969,
+   "total_filament_used": 47.5,
+   "total_print_times": 0,
+   "type": "file"
+  }
+ ],
+ "offset": 0,
+ "total": 29
+}
