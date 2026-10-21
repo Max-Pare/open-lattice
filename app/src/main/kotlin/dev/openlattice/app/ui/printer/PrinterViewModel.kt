@@ -84,13 +84,25 @@ class PrinterViewModel(application: Application, private val printerId: String) 
 
     private var cameraUrlCache: String? = null
 
+    private val _dismissedErrors = MutableStateFlow<Set<Int>>(emptySet())
+    /** Error codes the user hid; a code shows again once it clears and recurs. */
+    val dismissedErrors: StateFlow<Set<Int>> = _dismissedErrors.asStateFlow()
+
+    fun dismissError(code: Int) {
+        _dismissedErrors.value = _dismissedErrors.value + code
+    }
+
     init {
         viewModelScope.launch {
             val p = app.store.get(printerId) ?: return@launch
             printer.value = p
             driverFlow.value = app.connections.acquire(p)
             launch {
-                state.collect { if (it.machine.isJobActive) PrintMonitorService.start(getApplication()) }
+                state.collect { s ->
+                    if (s.machine.isJobActive) PrintMonitorService.start(getApplication())
+                    val present = s.exceptions.map { it.code }.toSet()
+                    if (!present.containsAll(_dismissedErrors.value)) _dismissedErrors.value = _dismissedErrors.value intersect present
+                }
             }
             // A file shared into the app while choosing this printer.
             PendingShare.uri.value?.let { uri ->

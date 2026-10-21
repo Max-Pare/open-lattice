@@ -56,12 +56,14 @@ class Cc2Driver(
     private val transportFactory: MqttTransportFactory = HiveMqTransport.Factory,
     private val mqttPort: Int = Cc2Method.MQTT_PORT,
     private val httpPort: Int = Cc2Method.HTTP_PORT,
+    private val exceptionRefreshMs: Long = 15_000L,
 ) : PrinterDriver {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val connectLock = Mutex()
     private var client: Cc2Client? = null
     private var stateJob: Job? = null
+    private var exceptionRefresh: Job? = null
     private var reconnectJob: Job? = null
     @Volatile private var closed = false
 
@@ -95,6 +97,7 @@ class Cc2Driver(
         reconnectJob?.cancel()
         connectLock.withLock {
             stateJob?.cancel()
+            exceptionRefresh?.cancel()
             val c = client
             client = null
             c?.onLost = null
@@ -134,6 +137,8 @@ class Cc2Driver(
         publishState()
         stateJob?.cancel()
         stateJob = combine(c.status, canvas, mono, connection) { _, _, _, _ -> publishState() }.launchIn(scope)
+        exceptionRefresh?.cancel()
+        exceptionRefresh = scope.launch { refreshWhileExceptions(c) }
         c.attributes.onEach { it?.let(::updateInfo) }.launchIn(scope)
         refreshFilament()
     }
@@ -182,6 +187,18 @@ class Cc2Driver(
         // Tray contents only change around loads, unloads and job transitions.
         if (conn == ConnectionState.Connected && previousMachine != mapped.machine && previousMachine != MachineState.UNKNOWN) {
             scope.launch { refreshFilament() }
+        }
+    }
+
+    /**
+     * The printer does not reliably push a delta when an exception clears, so the merged cache can
+     * keep a resolved error forever. While any is shown, re-read the authoritative full status.
+     */
+    private suspend fun refreshWhileExceptions(c: Cc2Client) {
+        while (true) {
+            delay(exceptionRefreshMs)
+            if (client !== c || connection.value != ConnectionState.Connected) return
+            if (_state.value.exceptions.isNotEmpty()) runCatching { c.refreshStatus() }
         }
     }
 

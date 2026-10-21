@@ -58,7 +58,8 @@ enum class PausedReason { USER, FILAMENT_RUNOUT, OTHER }
 
 data class Position(val x: Double, val y: Double, val z: Double)
 
-data class PrinterException(val code: Int, val message: String)
+/** [helpUrl] points at the vendor troubleshooting page for this code, when known. */
+data class PrinterException(val code: Int, val message: String, val helpUrl: String? = null)
 
 data class FilamentSystem(val hubs: List<FilamentHub>, val external: FilamentSlot?, val autoRefill: Boolean)
 

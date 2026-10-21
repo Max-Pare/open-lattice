@@ -112,19 +112,13 @@ object Cc2StatusMapper {
         else -> MachineState.BUSY
     }
 
-    private val EXCEPTION_MESSAGES = mapOf(
-        109 to "Filament runout detected",
-        1301 to "Print failure (spaghetti) detected",
-        1302 to "Foreign object detected on the bed",
-    )
-
     private fun mapExceptions(raw: JsonObject): List<PrinterException> {
         val codes = linkedSetOf<Int>()
         // Older firmware: machine_status.exception_status is an array of codes.
         ((raw / "machine_status").obj() / "exception_status").arr()?.forEach { e -> e.int()?.takeIf { it != 0 }?.let(codes::add) }
         // Newer firmware: exception.exception_code is an object keyed by code.
         ((raw / "exception").obj() / "exception_code").obj()?.keys?.forEach { k -> k.toIntOrNull()?.takeIf { it != 0 }?.let(codes::add) }
-        return codes.map { PrinterException(it, EXCEPTION_MESSAGES[it] ?: Cc2Method.errorMessage(it)) }
+        return codes.map { code -> Cc2ExceptionCodes.info(code).let { PrinterException(code, it.message, it.helpUrl) } }
     }
 
     /** Wire format is 0-255. */

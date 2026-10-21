@@ -236,6 +236,27 @@ class Cc2DriverTest {
     }
 
     @Test
+    fun resolvedExceptionClearsWithoutDelta() = runBlocking {
+        val fake = FakePrinter.withCapturedFixtures()
+        val idle = fixtureObject("status_idle.json")
+        val withError = Cc2Json.parseToJsonElement(
+            idle.toString().replace("\"exception_status\":[]", "\"exception_status\":[1101]")
+        ).jsonObject
+        fake.results[Cc2Method.GET_STATUS] = withError
+        Cc2Driver("192.168.1.116", fake.serial, fake.accessCode, transportFactory = fake, exceptionRefreshMs = 200).use { d ->
+            d.connect()
+            val e = withTimeout(2_000) { d.state.first { it.exceptions.isNotEmpty() } }.exceptions.single()
+            assertEquals(1101, e.code)
+            assertEquals("Exhaust vent failed to open. Check if it is blocked", e.message)
+            assertEquals("https://wiki.elegoo.com/en/centauri-carbon-2-combo/errorcode-1101", e.helpUrl)
+            // Printer resolves it but pushes no delta; only the full status shows it gone.
+            fake.results[Cc2Method.GET_STATUS] = idle
+            withTimeout(2_000) { d.state.first { it.exceptions.isEmpty() } }
+            Unit
+        }
+    }
+
+    @Test
     fun discoveryReplyParses() {
         val r = Cc2Discovery.parse("192.168.1.116", fixture("discovery_reply.json").toByteArray())!!
         assertEquals("F01TESTSERIAL01", r.serial)

@@ -1,6 +1,11 @@
 package dev.openlattice.app.ui.printer
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.runtime.collectAsState
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -83,11 +88,18 @@ fun StatusTab(vm: PrinterViewModel, state: PrinterState, onCamera: () -> Unit) {
             }
         }
 
-        state.exceptions.forEach { e ->
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val dismissed by vm.dismissedErrors.collectAsState()
+        val uri = LocalUriHandler.current
+        state.exceptions.filter { it.code !in dismissed }.forEach { e ->
+            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                Row(Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.Warning, null)
-                    Text("${e.message} (${e.code})")
+                    Column(Modifier.weight(1f)) {
+                        Text("Error ${e.code}", style = MaterialTheme.typography.labelLarge)
+                        Text(e.message, style = MaterialTheme.typography.bodyMedium)
+                        e.helpUrl?.let { url -> TextButton(onClick = { uri.openUri(url) }, contentPadding = PaddingValues(0.dp)) { Text("How to fix (ELEGOO wiki)") } }
+                    }
+                    IconButton(onClick = { vm.dismissError(e.code) }) { Icon(Icons.Default.Close, "Dismiss") }
                 }
             }
         }
