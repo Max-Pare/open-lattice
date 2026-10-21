@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -133,7 +134,9 @@ private fun Thumbnail(vm: PrinterViewModel, name: String) {
 @Composable
 private fun ColorDots(f: PrinterFile) {
     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        f.colors.take(4).forEach { c -> Box(Modifier.size(12.dp).clip(CircleShape).background(parseColor(c.color))) }
+        f.colors.take(4).forEach { c ->
+            Box(Modifier.size(12.dp).clip(CircleShape).background(parseColor(c.color)).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
+        }
     }
 }
 
