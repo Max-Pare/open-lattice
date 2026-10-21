@@ -3,6 +3,7 @@ package dev.openlattice.app
 import android.app.Application
 import dev.openlattice.app.data.PrinterConnections
 import dev.openlattice.app.data.PrinterStore
+import dev.openlattice.app.monitor.PrintCheckWorker
 
 class OpenLatticeApp : Application() {
     lateinit var store: PrinterStore
@@ -14,5 +15,6 @@ class OpenLatticeApp : Application() {
         super.onCreate()
         store = PrinterStore(this)
         connections = PrinterConnections(store)
+        PrintCheckWorker.schedule(this)
     }
 }
