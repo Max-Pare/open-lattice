@@ -10,7 +10,11 @@ interface PrinterDriver : AutoCloseable {
     val state: StateFlow<PrinterState>
     val capabilities: Set<Capability>
 
+    /** Connects, or reconnects at once if the session is down. Throws if the attempt fails. */
     suspend fun connect()
+    /** Ends the session and stops reconnecting; [connect] can be called again later. */
+    suspend fun disconnect()
+    /** Ends the session for good. */
     override fun close()
 
     /** Throws [PrinterCommandException] when the printer rejects the command. */

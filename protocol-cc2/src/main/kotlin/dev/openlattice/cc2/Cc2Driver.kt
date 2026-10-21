@@ -91,6 +91,19 @@ class Cc2Driver(
         doConnect()
     }
 
+    override suspend fun disconnect() {
+        reconnectJob?.cancel()
+        connectLock.withLock {
+            stateJob?.cancel()
+            val c = client
+            client = null
+            c?.onLost = null
+            runCatching { withTimeout(3000) { c?.close() } }
+            connection.value = ConnectionState.Disconnected
+            publishState()
+        }
+    }
+
     private suspend fun doConnect() = connectLock.withLock {
         if (closed) return@withLock
         client?.close()
@@ -118,6 +131,7 @@ class Cc2Driver(
             scheduleReconnect()
         }
         connection.value = ConnectionState.Connected
+        publishState()
         stateJob?.cancel()
         stateJob = combine(c.status, canvas, mono, connection) { _, _, _, _ -> publishState() }.launchIn(scope)
         c.attributes.onEach { it?.let(::updateInfo) }.launchIn(scope)

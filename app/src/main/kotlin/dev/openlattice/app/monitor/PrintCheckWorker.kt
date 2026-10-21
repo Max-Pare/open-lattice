@@ -29,9 +29,9 @@ class PrintCheckWorker(context: Context, params: WorkerParameters) : CoroutineWo
         MonitorNotifications.createChannels(ctx)
 
         for (printer in app.store.printers.first()) {
-            val driver = app.connections.acquire(printer)
+            val driver = app.connections.acquire(printer, background = true)
             try {
-                val state = withTimeoutOrNull(20_000) {
+                val state = withTimeoutOrNull(45_000) {
                     driver.state.first { it.connection == ConnectionState.Connected && it.machine != dev.openlattice.core.MachineState.UNKNOWN }
                 } ?: continue
                 lastSeen.get(printer.id)?.let { before ->
@@ -40,7 +40,7 @@ class PrintCheckWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 lastSeen.put(printer.id, state)
                 MonitorNotifications.postSnapshot(ctx, printer, state)
             } finally {
-                app.connections.release(printer.id)
+                app.connections.release(printer.id, background = true)
             }
         }
         return Result.success()

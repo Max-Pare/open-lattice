@@ -219,6 +219,23 @@ class Cc2DriverTest {
     }
 
     @Test
+    fun disconnectThenConnectAgain() = runBlocking {
+        val fake = FakePrinter.withCapturedFixtures()
+        driver(fake).use { d ->
+            d.connect()
+            val first = fake.transport!!
+            d.disconnect()
+            assertEquals(ConnectionState.Disconnected, d.state.value.connection)
+            // No automatic reconnect after an explicit disconnect.
+            kotlinx.coroutines.delay(2_500)
+            assertTrue(fake.transport === first)
+            d.connect()
+            assertEquals(ConnectionState.Connected, d.state.value.connection)
+            assertFalse(fake.transport === first)
+        }
+    }
+
+    @Test
     fun discoveryReplyParses() {
         val r = Cc2Discovery.parse("192.168.1.116", fixture("discovery_reply.json").toByteArray())!!
         assertEquals("F01TESTSERIAL01", r.serial)

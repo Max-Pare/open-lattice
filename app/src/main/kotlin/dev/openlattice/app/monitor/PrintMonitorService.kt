@@ -56,10 +56,10 @@ class PrintMonitorService : LifecycleService() {
             watched.remove(id)?.cancel()
             latest.remove(id)
             lastSeen.remove(id)
-            app.connections.release(id)
+            app.connections.release(id, background = true)
         }
         printers.filter { it.id !in watched }.forEach { p ->
-            val driver = app.connections.acquire(p)
+            val driver = app.connections.acquire(p, background = true)
             MonitorNotifications.cancelSnapshot(this, p.id)
             watched[p.id] = lifecycleScope.launch {
                 var previous: PrinterState? = lastSeen.get(p.id)
@@ -121,7 +121,7 @@ class PrintMonitorService : LifecycleService() {
     }
 
     override fun onDestroy() {
-        watched.keys.toList().forEach { app.connections.release(it) }
+        watched.keys.toList().forEach { app.connections.release(it, background = true) }
         watched.values.forEach { it.cancel() }
         watched.clear()
         isRunning = false
