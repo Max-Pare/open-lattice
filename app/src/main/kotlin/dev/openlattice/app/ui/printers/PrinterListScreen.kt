@@ -15,12 +15,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.UploadFile
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +44,7 @@ import dev.openlattice.app.ui.PendingShare
 import dev.openlattice.app.ui.StatusLine
 import dev.openlattice.app.ui.app
 import dev.openlattice.app.ui.formatDuration
+import dev.openlattice.core.ConnectionState
 import dev.openlattice.core.PrinterState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,7 +70,10 @@ fun PrinterListScreen(onAdd: () -> Unit, onOpen: (String) -> Unit) {
                     Card(Modifier.fillMaxWidth()) {
                         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.UploadFile, null)
-                            Text("Choose a printer to send the shared file to", Modifier.weight(1f).padding(horizontal = 12.dp))
+                            Text(
+                                "Choose a printer for the shared file. Send & print starts it once uploaded, unless the filament needs a look.",
+                                Modifier.weight(1f).padding(horizontal = 12.dp),
+                            )
                             TextButton(onClick = { PendingShare.uri.value = null }) { Text("Cancel") }
                         }
                     }
@@ -86,13 +92,23 @@ fun PrinterListScreen(onAdd: () -> Unit, onOpen: (String) -> Unit) {
                     }
                 }
             }
-            items(list.orEmpty(), key = { it.id }) { p -> PrinterCard(p, onClick = { onOpen(p.id) }) }
+            items(list.orEmpty(), key = { it.id }) { p ->
+                PrinterCard(
+                    p,
+                    sharing = pending != null,
+                    onClick = { onOpen(p.id) },
+                    onSendAndPrint = {
+                        PendingShare.printAfterUpload.value = true
+                        onOpen(p.id)
+                    },
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun PrinterCard(printer: SavedPrinter, onClick: () -> Unit) {
+private fun PrinterCard(printer: SavedPrinter, sharing: Boolean, onClick: () -> Unit, onSendAndPrint: () -> Unit) {
     val context = LocalContext.current
     val connections = context.app.connections
     val driver = remember(printer) { connections.acquire(printer) }
@@ -106,6 +122,15 @@ private fun PrinterCard(printer: SavedPrinter, onClick: () -> Unit) {
             Text("${printer.model} · ${printer.host}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             StatusLine(state)
             JobSummary(state)
+            if (sharing) {
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    OutlinedButton(onClick = onClick) { Text("Send") }
+                    Button(
+                        onClick = onSendAndPrint,
+                        enabled = state.connection == ConnectionState.Connected && !state.machine.isJobActive,
+                    ) { Text("Send & print") }
+                }
+            }
         }
     }
 }

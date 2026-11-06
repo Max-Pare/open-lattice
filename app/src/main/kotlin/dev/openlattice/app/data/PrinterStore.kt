@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import dev.openlattice.core.BuildPlate
+import dev.openlattice.core.PrintPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -34,6 +36,13 @@ private data class StoredPrinter(
     val accessCodeSealed: String,
 )
 
+@Serializable
+private data class StoredPrintPreferences(
+    val plate: BuildPlate = BuildPlate.TEXTURED,
+    val autoBedLeveling: Boolean = false,
+    val timelapse: Boolean = false,
+)
+
 private val Context.printerDataStore by preferencesDataStore(name = "printers")
 
 class PrinterStore(private val context: Context) {
@@ -61,7 +70,24 @@ class PrinterStore(private val context: Context) {
         if (i >= 0) list.toMutableList().apply { set(i, stored) } else list + stored
     }
 
-    suspend fun remove(id: String) = edit { list -> list.filterNot { it.id == id } }
+    suspend fun remove(id: String) {
+        edit { list -> list.filterNot { it.id == id } }
+        context.printerDataStore.edit { it.remove(printPrefsKey(id)) }
+    }
+
+    /** The start-print settings last used on this printer. */
+    fun printPreferences(id: String): Flow<PrintPreferences> = context.printerDataStore.data.map { prefs ->
+        val s = prefs[printPrefsKey(id)]?.let { runCatching { json.decodeFromString<StoredPrintPreferences>(it) }.getOrNull() }
+            ?: StoredPrintPreferences()
+        PrintPreferences(plate = s.plate, autoBedLeveling = s.autoBedLeveling, timelapse = s.timelapse)
+    }
+
+    suspend fun setPrintPreferences(id: String, p: PrintPreferences) {
+        val stored = StoredPrintPreferences(plate = p.plate, autoBedLeveling = p.autoBedLeveling, timelapse = p.timelapse)
+        context.printerDataStore.edit { it[printPrefsKey(id)] = json.encodeToString(stored) }
+    }
+
+    private fun printPrefsKey(id: String) = stringPreferencesKey("print_prefs_$id")
 
     private suspend fun edit(transform: (List<StoredPrinter>) -> List<StoredPrinter>) {
         context.printerDataStore.edit { prefs ->

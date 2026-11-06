@@ -25,6 +25,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /** A file shared into the app, waiting for the user to choose the printer to send it to. */
 object PendingShare {
     val uri = MutableStateFlow<Uri?>(null)
+    /** Set when the user chose "Send & print": start the print as soon as the upload finishes. */
+    val printAfterUpload = MutableStateFlow(false)
 }
 
 class MainActivity : ComponentActivity() {
@@ -94,7 +96,10 @@ class MainActivity : ComponentActivity() {
             Intent.ACTION_VIEW -> intent.data
             else -> null
         }
-        if (uri != null) PendingShare.uri.value = uri
+        if (uri != null) {
+            PendingShare.printAfterUpload.value = false
+            PendingShare.uri.value = uri
+        }
     }
 
     companion object {

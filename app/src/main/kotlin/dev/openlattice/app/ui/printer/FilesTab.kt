@@ -16,10 +16,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -59,10 +64,9 @@ import dev.openlattice.app.ui.formatDuration
 import dev.openlattice.core.BuildPlate
 import dev.openlattice.core.ConnectionState
 import dev.openlattice.core.FilamentSlot
-import dev.openlattice.core.PrinterCommand
+import dev.openlattice.core.PrintPlanner
 import dev.openlattice.core.PrinterFile
 import dev.openlattice.core.PrinterState
-import dev.openlattice.core.SlotMapping
 import dev.openlattice.core.Storage
 import java.text.DateFormat
 import java.util.Date
@@ -70,8 +74,8 @@ import java.util.Date
 @Composable
 fun FilesTab(vm: PrinterViewModel, state: PrinterState) {
     val ui by vm.files.collectAsState()
-    var selected by remember { mutableStateOf<PrinterFile?>(null) }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::upload) }
+    var printAfterPick by remember { mutableStateOf(false) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { vm.upload(it, printAfter = printAfterPick) } }
     val connected = state.connection == ConnectionState.Connected
 
     LaunchedEffect(connected) { if (connected) vm.loadFiles() }
@@ -94,13 +98,23 @@ fun FilesTab(vm: PrinterViewModel, state: PrinterState) {
                 )
             }
         }
-        FilledTonalButton(
-            onClick = { picker.launch(arrayOf("*/*")) },
-            enabled = connected,
-            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-        ) {
-            Icon(Icons.Default.UploadFile, null)
-            Text("Upload a sliced file from this phone", Modifier.padding(start = 8.dp))
+        Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilledTonalButton(
+                onClick = { printAfterPick = false; picker.launch(arrayOf("*/*")) },
+                enabled = connected,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(Icons.Default.UploadFile, null)
+                Text("Upload", Modifier.padding(start = 8.dp))
+            }
+            Button(
+                onClick = { printAfterPick = true; picker.launch(arrayOf("*/*")) },
+                enabled = connected && !state.machine.isJobActive,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(Icons.Default.PlayArrow, null)
+                Text("Upload & print", Modifier.padding(start = 8.dp))
+            }
         }
         when {
             ui.loading -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -111,7 +125,7 @@ fun FilesTab(vm: PrinterViewModel, state: PrinterState) {
             items(ui.files, key = { it.name }) { f ->
                 LaunchedEffect(f.name) { vm.loadThumbnail(ui.storage, f.name) }
                 ListItem(
-                    modifier = Modifier.clickable { selected = f },
+                    modifier = Modifier.clickable { vm.openPrintSheet(f, ui.storage) },
                     leadingContent = { Thumbnail(vm, f.name) },
                     headlineContent = { Text(f.name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
                     supportingContent = {
@@ -127,10 +141,6 @@ fun FilesTab(vm: PrinterViewModel, state: PrinterState) {
                 )
             }
         }
-    }
-
-    selected?.let { f ->
-        FileDialog(vm, state, ui.storage, f, onDismiss = { selected = null })
     }
 }
 
@@ -154,26 +164,28 @@ private fun ColorDots(f: PrinterFile) {
 internal fun parseColor(hex: String?): Color =
     runCatching { Color(android.graphics.Color.parseColor(hex ?: "#888888")) }.getOrDefault(Color.Gray)
 
+/**
+ * Print sheet for one file: remembered settings, CANVAS trays matched automatically (each can
+ * be changed), and anything that needs a look before the print starts.
+ */
 @Composable
-private fun FileDialog(vm: PrinterViewModel, state: PrinterState, storage: Storage, f: PrinterFile, onDismiss: () -> Unit) {
-    var leveling by remember { mutableStateOf(false) }
-    var plate by remember { mutableStateOf(BuildPlate.TEXTURED) }
-    var timelapse by remember { mutableStateOf(false) }
+internal fun PrintDialog(vm: PrinterViewModel, state: PrinterState, prompt: PrintPrompt, onDismiss: () -> Unit) {
+    val f = prompt.file
+    val saved by vm.printPrefs.collectAsState()
+    var prefs by remember(f) { mutableStateOf(saved) }
     var confirmDelete by remember { mutableStateOf(false) }
-    val slots = state.filament?.hubs.orEmpty().flatMap { it.slots }.filter { it.present }
-    // Tool index -> chosen CANVAS slot. Defaults to the first slot with a matching material.
-    val mapping = remember(f, slots) {
-        mutableStateMapOf<Int, FilamentSlot?>().apply {
-            f.colors.forEach { c -> put(c.tool, slots.firstOrNull { it.material.equals(c.material, ignoreCase = true) } ?: slots.firstOrNull()) }
-        }
-    }
-    val busy = state.machine.isJobActive
+    val trays = state.filament?.hubs.orEmpty().flatMap { it.slots }.filter { it.present }
+    // Tools whose tray the user picked by hand; the rest follow the automatic match.
+    val chosen = remember(f) { mutableStateMapOf<Int, FilamentSlot>() }
+    val plan = PrintPlanner.plan(f, prompt.storage, state, prefs, chosen.toMap())
+
+    LaunchedEffect(f.name) { vm.loadThumbnail(prompt.storage, f.name) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(f.name, maxLines = 3, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 vm.thumbnails[f.name]?.let { Image(it, null, Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))) }
                 Text(
                     listOfNotNull(
@@ -186,44 +198,36 @@ private fun FileDialog(vm: PrinterViewModel, state: PrinterState, storage: Stora
                 )
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     listOf(BuildPlate.TEXTURED to "Textured plate", BuildPlate.SMOOTH to "Smooth plate").forEachIndexed { i, (p, label) ->
-                        SegmentedButton(selected = plate == p, onClick = { plate = p }, shape = SegmentedButtonDefaults.itemShape(i, 2)) { Text(label, maxLines = 1) }
+                        SegmentedButton(selected = prefs.plate == p, onClick = { prefs = prefs.copy(plate = p) }, shape = SegmentedButtonDefaults.itemShape(i, 2)) {
+                            Text(label, maxLines = 1)
+                        }
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Auto bed leveling", Modifier.weight(1f))
-                    Switch(leveling, { leveling = it })
+                    Switch(prefs.autoBedLeveling, { prefs = prefs.copy(autoBedLeveling = it) })
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Record timelapse", Modifier.weight(1f))
-                    Switch(timelapse, { timelapse = it })
+                    Switch(prefs.timelapse, { prefs = prefs.copy(timelapse = it) })
                 }
-                if (slots.isNotEmpty() && f.colors.isNotEmpty()) {
-                    Text("CANVAS slots", style = MaterialTheme.typography.titleSmall)
-                    f.colors.forEach { c ->
-                        SlotPicker(c.tool, c.color, c.material, slots, mapping[c.tool]) { mapping[c.tool] = it }
+                if (trays.isNotEmpty() && f.colors.isNotEmpty()) {
+                    Text("CANVAS trays", style = MaterialTheme.typography.titleSmall)
+                    f.colors.distinctBy { it.tool }.forEach { c ->
+                        SlotPicker(c.tool, c.color, c.material, trays, plan.slots[c.tool]) { chosen[c.tool] = it }
                     }
                 }
-                if (busy) Text("A print is running; start this one when it finishes.", color = MaterialTheme.colorScheme.error)
+                plan.issues.forEach { issue ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val tint = if (issue.blocking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+                        Icon(if (issue.blocking) Icons.Default.Block else Icons.Default.WarningAmber, null, tint = tint, modifier = Modifier.size(18.dp))
+                        Text(issue.message, style = MaterialTheme.typography.bodySmall, color = tint)
+                    }
+                }
             }
         },
         confirmButton = {
-            Button(
-                enabled = !busy,
-                onClick = {
-                    onDismiss()
-                    vm.send(
-                        PrinterCommand.StartPrint(
-                            fileName = f.name,
-                            storage = storage,
-                            autoBedLeveling = leveling,
-                            plate = plate,
-                            timelapse = timelapse,
-                            slotMap = mapping.mapNotNull { (tool, slot) -> slot?.let { SlotMapping(tool, it.hubId, it.trayId) } },
-                        ),
-                        success = "Print started",
-                    )
-                },
-            ) { Text("Print") }
+            Button(enabled = !plan.blocked, onClick = { vm.startPrint(plan.command, prefs) }) { Text("Print") }
         },
         dismissButton = {
             Row {
@@ -238,7 +242,7 @@ private fun FileDialog(vm: PrinterViewModel, state: PrinterState, storage: Stora
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete file?") },
             text = { Text(f.name) },
-            confirmButton = { TextButton(onClick = { confirmDelete = false; onDismiss(); vm.deleteFile(storage, f.name) }) { Text("Delete") } },
+            confirmButton = { TextButton(onClick = { confirmDelete = false; onDismiss(); vm.deleteFile(prompt.storage, f.name) }) { Text("Delete") } },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
         )
     }

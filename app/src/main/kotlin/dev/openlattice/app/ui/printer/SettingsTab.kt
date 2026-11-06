@@ -88,7 +88,7 @@ fun SettingsTab(vm: PrinterViewModel, onRemoved: () -> Unit) {
         AlertDialog(
             onDismissRequest = { removing = false },
             title = { Text("Remove printer?") },
-            text = { Text("This only removes it from open-lattice. Nothing on the printer changes.") },
+            text = { Text("This only removes it from Open Lattice. Nothing on the printer changes.") },
             confirmButton = { TextButton(onClick = { removing = false; vm.remove(onRemoved) }) { Text("Remove") } },
             dismissButton = { TextButton(onClick = { removing = false }) { Text("Cancel") } },
         )
