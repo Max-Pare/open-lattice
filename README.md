@@ -24,6 +24,10 @@ Verified against a real CC2 on firmware 02.01.01.07 unless marked *untested*.
 - Files on the printer and USB: thumbnails, details, storage usage, delete
 - Upload a sliced file from the phone or via Android share
 - Start a print with plate type, auto bed leveling, timelapse and CANVAS slot mapping (*untested*)
+- One-tap print (*untested*): **Send & print** from Android share, **Upload & print** in Files, and
+  **Print now** after an upload. Uses the plate / leveling / timelapse settings last used on that
+  printer and matches CANVAS trays to the file by material, then colour. If anything needs a look
+  (filament mismatch, unknown filament, printer error) the print sheet opens instead of starting.
 - Print history from the printer
 - Filament: external spool and CANVAS trays, edit material/colour, load/unload (*untested*), auto refill (*untested*)
 - Rename the printer

@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Texture
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -60,6 +61,7 @@ fun PrinterScreen(printerId: String, onBack: () -> Unit, onCamera: (String) -> U
     val printer by vm.printer.collectAsState()
     val state by vm.state.collectAsState()
     val upload by vm.upload.collectAsState()
+    val printPrompt by vm.printPrompt.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     var tab by rememberSaveable { mutableIntStateOf(0) }
 
@@ -103,7 +105,15 @@ fun PrinterScreen(printerId: String, onBack: () -> Unit, onCamera: (String) -> U
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            upload?.let { UploadBanner(it, onCancel = vm::cancelUpload, onDismiss = vm::dismissUpload) }
+            upload?.let {
+                UploadBanner(
+                    it,
+                    canPrint = !state.machine.isJobActive,
+                    onCancel = vm::cancelUpload,
+                    onDismiss = vm::dismissUpload,
+                    onPrint = vm::printUploaded,
+                )
+            }
             when (Tab.entries[tab]) {
                 Tab.STATUS -> StatusTab(vm, state, onCamera = { onCamera(printerId) })
                 Tab.FILES -> FilesTab(vm, state)
@@ -113,26 +123,30 @@ fun PrinterScreen(printerId: String, onBack: () -> Unit, onCamera: (String) -> U
             }
         }
     }
+
+    printPrompt?.let { PrintDialog(vm, state, it, onDismiss = vm::closePrintSheet) }
 }
 
 @Composable
-private fun UploadBanner(u: UploadUi, onCancel: () -> Unit, onDismiss: () -> Unit) {
+private fun UploadBanner(u: UploadUi, canPrint: Boolean, onCancel: () -> Unit, onDismiss: () -> Unit, onPrint: () -> Unit) {
     Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(u.fileName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleSmall)
             when {
                 u.error != null -> Text(u.error, color = MaterialTheme.colorScheme.error)
-                u.done -> Text("Uploaded. Start it from the Files tab.")
+                u.done -> Text(if (canPrint) "Uploaded" else "Uploaded. The printer is busy; start it from Files when it is free.")
                 else -> {
                     val p = u.progress
                     if (p == null) LinearProgressIndicator(Modifier.fillMaxWidth())
                     else LinearProgressIndicator(progress = { p.fraction }, modifier = Modifier.fillMaxWidth())
-                    Text(p?.let { "${formatBytes(it.sentBytes)} / ${formatBytes(it.totalBytes)}" } ?: "Preparing…", style = MaterialTheme.typography.bodySmall)
+                    val sent = p?.let { "${formatBytes(it.sentBytes)} / ${formatBytes(it.totalBytes)}" } ?: "Preparing…"
+                    Text(if (u.printAfter) "$sent · prints when uploaded" else sent, style = MaterialTheme.typography.bodySmall)
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                 if (u.done || u.error != null) TextButton(onClick = onDismiss) { Text("Dismiss") }
                 else TextButton(onClick = onCancel) { Text("Cancel") }
+                if (u.done && canPrint) Button(onClick = onPrint, modifier = Modifier.padding(start = 8.dp)) { Text("Print now") }
             }
         }
     }

@@ -14,6 +14,8 @@ import dev.openlattice.app.data.UriUploadSource
 import dev.openlattice.app.ui.PendingShare
 import dev.openlattice.app.ui.app
 import dev.openlattice.core.HistoryEntry
+import dev.openlattice.core.PrintPlanner
+import dev.openlattice.core.PrintPreferences
 import dev.openlattice.core.PrinterCommand
 import dev.openlattice.core.PrinterDriver
 import dev.openlattice.core.PrinterFile
@@ -25,6 +27,7 @@ import dev.openlattice.core.UploadProgress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -49,7 +52,17 @@ data class FilesUi(
 
 data class HistoryUi(val entries: List<HistoryEntry> = emptyList(), val loading: Boolean = false, val error: String? = null)
 
-data class UploadUi(val fileName: String, val progress: UploadProgress?, val done: Boolean = false, val error: String? = null)
+data class UploadUi(
+    val fileName: String,
+    val progress: UploadProgress?,
+    val done: Boolean = false,
+    val error: String? = null,
+    /** Start the print as soon as the upload finishes. */
+    val printAfter: Boolean = false,
+)
+
+/** The print sheet is open for this file. */
+data class PrintPrompt(val file: PrinterFile, val storage: Storage)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PrinterViewModel(application: Application, private val printerId: String) : AndroidViewModel(application) {
@@ -75,6 +88,13 @@ class PrinterViewModel(application: Application, private val printerId: String) 
     private val _upload = MutableStateFlow<UploadUi?>(null)
     val upload: StateFlow<UploadUi?> = _upload.asStateFlow()
     private var uploadJob: Job? = null
+
+    /** Start-print settings last used on this printer. */
+    val printPrefs: StateFlow<PrintPreferences> = app.store.printPreferences(printerId)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, PrintPreferences())
+
+    private val _printPrompt = MutableStateFlow<PrintPrompt?>(null)
+    val printPrompt: StateFlow<PrintPrompt?> = _printPrompt.asStateFlow()
 
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val messages: SharedFlow<String> = _messages
@@ -107,7 +127,8 @@ class PrinterViewModel(application: Application, private val printerId: String) 
             // A file shared into the app while choosing this printer.
             PendingShare.uri.value?.let { uri ->
                 PendingShare.uri.value = null
-                upload(uri)
+                upload(uri, printAfter = PendingShare.printAfterUpload.value)
+                PendingShare.printAfterUpload.value = false
             }
         }
     }
@@ -131,14 +152,71 @@ class PrinterViewModel(application: Application, private val printerId: String) 
         _files.value = _files.value.copy(storage = storage, loading = true, error = null)
         viewModelScope.launch {
             _files.value = try {
-                val d = driver()
-                val files = d.listFiles(storage).sortedByDescending { it.createdAtEpochSec ?: 0 }
-                val space = if (storage == Storage.LOCAL) runCatching { d.storageInfo() }.getOrNull() else null
+                val files = fetchFiles(storage)
+                val space = if (storage == Storage.LOCAL) runCatching { driver().storageInfo() }.getOrNull() else null
                 FilesUi(storage, files, space = space)
             } catch (e: Exception) {
                 FilesUi(storage, emptyList(), error = e.message ?: "Could not list files")
             }
         }
+    }
+
+    private suspend fun fetchFiles(storage: Storage): List<PrinterFile> =
+        driver().listFiles(storage).sortedByDescending { it.createdAtEpochSec ?: 0 }
+
+    fun openPrintSheet(file: PrinterFile, storage: Storage) {
+        _printPrompt.value = PrintPrompt(file, storage)
+    }
+
+    fun closePrintSheet() {
+        _printPrompt.value = null
+    }
+
+    /** Starts [command] and remembers [prefs] as this printer's settings for the next print. */
+    fun startPrint(command: PrinterCommand.StartPrint, prefs: PrintPreferences) {
+        _printPrompt.value = null
+        viewModelScope.launch { app.store.setPrintPreferences(printerId, prefs) }
+        send(command, success = "Print started")
+    }
+
+    /**
+     * One-tap print: starts [fileName] with the remembered settings and automatically matched
+     * CANVAS trays. Opens the print sheet instead when something needs a look (filament mismatch,
+     * unknown filament, printer error); refuses with a message when the printer cannot print now.
+     */
+    fun printNow(fileName: String, storage: Storage = Storage.LOCAL) {
+        viewModelScope.launch {
+            val file = findFile(storage, fileName)
+            if (file == null) {
+                _messages.emit("$fileName is not on the printer")
+                return@launch
+            }
+            val prefs = printPrefs.value
+            val plan = PrintPlanner.plan(file, storage, state.value, prefs)
+            when {
+                plan.ready -> startPrint(plan.command, prefs)
+                plan.blocked -> _messages.emit(plan.issues.first { it.blocking }.message)
+                else -> _printPrompt.value = PrintPrompt(file, storage)
+            }
+        }
+    }
+
+    /**
+     * Finds a file on the printer, waiting briefly for a fresh upload to show up with its
+     * metadata (filament colours, layers), which the printer reads after the transfer ends.
+     */
+    private suspend fun findFile(storage: Storage, name: String): PrinterFile? {
+        var found: PrinterFile? = null
+        for (attempt in 1..FIND_ATTEMPTS) {
+            val list = runCatching { fetchFiles(storage) }.getOrNull()
+            if (list != null) {
+                if (_files.value.storage == storage) _files.value = _files.value.copy(files = list, loading = false, error = null)
+                found = list.firstOrNull { it.name == name } ?: found
+                if (found != null && (found.colors.isNotEmpty() || found.layers != null)) return found
+            }
+            if (attempt < FIND_ATTEMPTS) delay(FIND_RETRY_MS)
+        }
+        return found
     }
 
     fun loadThumbnail(storage: Storage, name: String) {
@@ -185,7 +263,7 @@ class PrinterViewModel(application: Application, private val printerId: String) 
         }
     }
 
-    fun upload(uri: Uri) {
+    fun upload(uri: Uri, printAfter: Boolean = false) {
         if (uploadJob?.isActive == true) {
             viewModelScope.launch { _messages.emit("An upload is already running") }
             return
@@ -197,11 +275,16 @@ class PrinterViewModel(application: Application, private val printerId: String) 
                 _messages.emit(e.message ?: "Cannot read the file")
                 return@launch
             }
-            _upload.value = UploadUi(source.name, null)
+            _upload.value = UploadUi(source.name, null, printAfter = printAfter)
             try {
-                driver().upload(source).collect { _upload.value = UploadUi(source.name, it) }
-                _upload.value = _upload.value?.copy(done = true)
-                loadFiles(Storage.LOCAL)
+                driver().upload(source).collect { _upload.value = UploadUi(source.name, it, printAfter = printAfter) }
+                if (printAfter) {
+                    _upload.value = null
+                    printNow(source.name)
+                } else {
+                    _upload.value = _upload.value?.copy(done = true)
+                    loadFiles(Storage.LOCAL)
+                }
             } catch (e: Exception) {
                 _upload.value = _upload.value?.copy(error = e.message ?: "Upload failed")
             }
@@ -215,6 +298,13 @@ class PrinterViewModel(application: Application, private val printerId: String) 
 
     fun dismissUpload() {
         _upload.value = null
+    }
+
+    /** "Print now" on a finished upload. */
+    fun printUploaded() {
+        val u = _upload.value ?: return
+        _upload.value = null
+        printNow(u.fileName)
     }
 
     suspend fun cameraUrl(): String? {
@@ -254,6 +344,11 @@ class PrinterViewModel(application: Application, private val printerId: String) 
             app.store.remove(printerId)
             onRemoved()
         }
+    }
+
+    private companion object {
+        const val FIND_ATTEMPTS = 5
+        const val FIND_RETRY_MS = 800L
     }
 
     override fun onCleared() {
