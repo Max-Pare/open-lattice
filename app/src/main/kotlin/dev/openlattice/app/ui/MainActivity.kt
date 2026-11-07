@@ -10,6 +10,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,6 +26,9 @@ import dev.openlattice.app.ui.add.AddPrinterScreen
 import dev.openlattice.app.ui.camera.CameraScreen
 import dev.openlattice.app.ui.printer.PrinterScreen
 import dev.openlattice.app.ui.printers.PrinterListScreen
+import dev.openlattice.app.ui.settings.AppearanceScreen
+import dev.openlattice.app.ui.settings.PendingPalette
+import dev.openlattice.core.theme.Colorhunt
 import dev.openlattice.app.ui.theme.OpenLatticeTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -38,7 +48,13 @@ class MainActivity : ComponentActivity() {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
         }
         setContent {
-            OpenLatticeTheme {
+            val appearance by app.appearance.collectAsState()
+            // Black until the saved look is read (a few ms), so the wrong colours never flash.
+            val loaded = appearance ?: run {
+                Box(Modifier.fillMaxSize().background(Color.Black))
+                return@setContent
+            }
+            OpenLatticeTheme(loaded) {
                 val nav = rememberNavController()
                 // Opened from a monitor notification: jump to that printer.
                 LaunchedEffect(Unit) {
@@ -49,12 +65,20 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+                // A Colorhunt link shared into the app: open Appearance with it filled in.
+                LaunchedEffect(Unit) {
+                    PendingPalette.text.collect { if (it != null) nav.navigate("appearance") { launchSingleTop = true } }
+                }
                 NavHost(nav, startDestination = "printers") {
                     composable("printers") {
                         PrinterListScreen(
                             onAdd = { nav.navigate("add") },
                             onOpen = { id -> nav.navigate("printer/$id") },
+                            onAppearance = { nav.navigate("appearance") },
                         )
+                    }
+                    composable("appearance") {
+                        AppearanceScreen(onBack = { nav.popBackStack() })
                     }
                     composable("add") {
                         AddPrinterScreen(onDone = { id ->
@@ -68,6 +92,7 @@ class MainActivity : ComponentActivity() {
                             onBack = { nav.popBackStack() },
                             onCamera = { id -> nav.navigate("camera/$id") },
                             onRemoved = { nav.popBackStack("printers", inclusive = false) },
+                            onAppearance = { nav.navigate("appearance") },
                         )
                     }
                     composable("camera/{id}", arguments = listOf(navArgument("id") { type = NavType.StringType })) {
@@ -87,6 +112,13 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent?) {
         intent?.getStringExtra(EXTRA_PRINTER_ID)?.let { openPrinter.value = it }
+        // Shared text (from a browser or Colorhunt) that holds a palette link.
+        if (intent?.action == Intent.ACTION_SEND) {
+            intent.getStringExtra(Intent.EXTRA_TEXT)?.takeIf { Colorhunt.parse(it) != null }?.let {
+                PendingPalette.text.value = it
+                return
+            }
+        }
         val uri = when (intent?.action) {
             Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
