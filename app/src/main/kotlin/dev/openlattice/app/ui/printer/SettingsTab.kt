@@ -2,16 +2,12 @@ package dev.openlattice.app.ui.printer
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,37 +18,37 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import dev.openlattice.app.ui.app
+import dev.openlattice.app.ui.components.GroupDivider
+import dev.openlattice.app.ui.components.GroupLabel
+import dev.openlattice.app.ui.components.SettingsGroup
+import dev.openlattice.app.ui.components.SettingsRow
 
 @Composable
-fun SettingsTab(vm: PrinterViewModel, onRemoved: () -> Unit) {
+fun SettingsTab(vm: PrinterViewModel, onRemoved: () -> Unit, onAppearance: () -> Unit) {
     val printer by vm.printer.collectAsState()
     val info by vm.info.collectAsState()
+    val appearance by LocalContext.current.app.appearance.collectAsState()
     val p = printer ?: return
     var renaming by remember { mutableStateOf(false) }
     var editingConnection by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf(false) }
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Printer", style = MaterialTheme.typography.titleSmall)
-                InfoRow("Name", info?.name ?: p.name)
-                InfoRow("Model", info?.model ?: p.model)
-                InfoRow("Serial", p.serial)
-                InfoRow("Firmware", info?.firmware ?: "–")
-                InfoRow("Address", p.host)
-            }
-        }
-        OutlinedButton(onClick = { renaming = true }, modifier = Modifier.fillMaxWidth()) { Text("Rename printer") }
-        OutlinedButton(onClick = { editingConnection = true }, modifier = Modifier.fillMaxWidth()) { Text("Change address or access code") }
-        Button(
-            onClick = { removing = true },
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Remove from this app") }
-    }
+    SettingsContent(
+        name = info?.name ?: p.name,
+        model = info?.model ?: p.model,
+        serial = p.serial,
+        firmware = info?.firmware,
+        host = p.host,
+        paletteName = appearance?.active?.name ?: "Phone colours",
+        onRename = { renaming = true },
+        onConnection = { editingConnection = true },
+        onAppearance = onAppearance,
+        onRemove = { removing = true },
+    )
 
     if (renaming) {
         var name by remember { mutableStateOf(info?.name ?: p.name) }
@@ -96,9 +92,40 @@ fun SettingsTab(vm: PrinterViewModel, onRemoved: () -> Unit) {
 }
 
 @Composable
-private fun InfoRow(label: String, value: String) {
-    androidx.compose.foundation.layout.Row {
-        Text(label, Modifier.weight(0.35f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, Modifier.weight(0.65f), style = MaterialTheme.typography.bodyMedium)
+fun SettingsContent(
+    name: String,
+    model: String,
+    serial: String,
+    firmware: String?,
+    host: String,
+    paletteName: String,
+    onRename: () -> Unit,
+    onConnection: () -> Unit,
+    onAppearance: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
+        GroupLabel("Printer")
+        SettingsGroup {
+            SettingsRow("Name", value = name, onClick = onRename)
+            GroupDivider()
+            SettingsRow("Connection", value = host, onClick = onConnection)
+        }
+        GroupLabel("About")
+        SettingsGroup {
+            SettingsRow("Model", value = model)
+            GroupDivider()
+            SettingsRow("Serial number", value = serial.ifBlank { "–" })
+            GroupDivider()
+            SettingsRow("Firmware", value = firmware ?: "–")
+        }
+        GroupLabel("App")
+        SettingsGroup {
+            SettingsRow("Appearance", value = paletteName, onClick = onAppearance)
+        }
+        Spacer(Modifier.height(24.dp))
+        SettingsGroup {
+            SettingsRow("Remove printer", onClick = onRemove, destructive = true)
+        }
     }
 }

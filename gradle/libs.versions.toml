@@ -13,6 +13,8 @@ datastore = "1.2.1"
 work = "2.12.0"
 coreKtx = "1.19.1"
 junit = "4.13.2"
+robolectric = "4.17"
+roborazzi = "1.77.0"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -39,9 +41,16 @@ compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-material-icons = { module = "androidx.compose.material:material-icons-extended" }
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+robolectric-android-all = { module = "org.robolectric:android-all-instrumented", version = "15-robolectric-13954326-i7" }
+roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }

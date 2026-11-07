@@ -31,6 +31,13 @@ Verified against a real CC2 on firmware 02.01.01.07 unless marked *untested*.
 - Print history from the printer
 - Filament: external spool and CANVAS trays, edit material/colour, load/unload (*untested*), auto refill (*untested*)
 - Rename the printer
+- Look: dark-first design with a device home (camera, job, temperatures, control tiles, CANVAS
+  spools), a round jog pad, grouped settings, history with **Print again**
+- Palettes: paste (or share to the app) a [Colorhunt](https://colorhunt.co) palette link such as
+  `https://colorhunt.co/palette/071b2b167d8db9e4e8eeeeee` to recolour the app. Palettes are kept in
+  a list to switch between at any time, alongside the default and (Android 12+) your wallpaper
+  colours. The colours are read from the link itself, so nothing is downloaded; each palette is
+  mapped to text and accent colours that keep WCAG contrast (4.5:1 or better) in dark and light.
 - Background monitor while printing: progress notification and alerts for finished, stopped,
   errors and filament runout; plus a 15-minute check for prints started while the app was closed
 
@@ -52,6 +59,13 @@ Requires JDK 17 and the Android SDK (platform 36).
 ```sh
 ./gradlew :core:test :protocol-cc2:test   # JVM tests (protocol replayed from real captures)
 ./gradlew :app:assembleDebug              # app/build/outputs/apk/debug/app-debug.apk
+```
+
+Screenshots of every screen, rendered on the JVM (Robolectric) from fake printer data in a few
+palettes, land in `app/build/screenshots/`:
+
+```sh
+./gradlew :app:recordRoborazziDebug
 ```
 
 Live, read-only protocol checks against a real printer (sends nothing that changes state):

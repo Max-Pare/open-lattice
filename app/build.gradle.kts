@@ -2,6 +2,15 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.roborazzi)
+}
+
+// The Android framework jar Robolectric runs screenshot tests against (SDK 35).
+val robolectricSdk: Configuration = configurations.create("robolectricSdk")
+val robolectricJarsDir = layout.buildDirectory.dir("robolectric-jars")
+val robolectricJars = tasks.register<Sync>("robolectricJars") {
+    from(robolectricSdk)
+    into(robolectricJarsDir)
 }
 
 android {
@@ -30,6 +39,17 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    testOptions {
+        // Screenshot tests render Compose on the JVM with Robolectric (no device needed).
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            // Robolectric's Android jar comes through Gradle (below), not Robolectric's own downloader.
+            it.dependsOn(robolectricJars)
+            it.systemProperty("robolectric.offline", "true")
+            it.systemProperty("robolectric.dependency.dir", robolectricJarsDir.get().asFile.absolutePath)
+        }
     }
 
     packaging {
@@ -63,4 +83,12 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    debugImplementation(libs.compose.ui.test.manifest)
+    robolectricSdk(libs.robolectric.android.all)
 }

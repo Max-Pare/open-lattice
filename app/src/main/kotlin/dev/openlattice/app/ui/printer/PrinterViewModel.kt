@@ -201,6 +201,15 @@ class PrinterViewModel(application: Application, private val printerId: String) 
         }
     }
 
+    /** "Print again" from history: opens the print sheet if the file is still on the printer. */
+    fun reprint(fileName: String) {
+        viewModelScope.launch {
+            val file = runCatching { fetchFiles(Storage.LOCAL) }.getOrNull()?.firstOrNull { it.name == fileName }
+            if (file == null) _messages.emit("$fileName is no longer on the printer")
+            else _printPrompt.value = PrintPrompt(file, Storage.LOCAL)
+        }
+    }
+
     /**
      * Finds a file on the printer, waiting briefly for a fresh upload to show up with its
      * metadata (filament colours, layers), which the printer reads after the transfer ends.
